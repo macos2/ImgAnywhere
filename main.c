@@ -33,18 +33,18 @@ void imgtool_test(cairo_surface_t *s){
 	cairo_surface_t *color_channel=cairo_image_surface_create(CAIRO_FORMAT_ARGB32,400,400);
 	img_error_diffusion(cairo_image_surface_get_data(s),cairo_image_surface_get_data(color_diff),400,400,4,1,&diff_332);
 	cairo_surface_write_to_png(color_diff,"color_diff.png");
-	argb_remap(cairo_image_surface_get_data(color_diff),cairo_image_surface_get_data(color_channel),400,400,&a_channel);
+	img_argb_remap(cairo_image_surface_get_data(color_diff),cairo_image_surface_get_data(color_channel),400,400,&a_channel);
 	cairo_surface_write_to_png(color_channel,"alpha.png");
-	argb_remap(cairo_image_surface_get_data(color_diff),cairo_image_surface_get_data(color_channel),400,400,&r_channel);
+	img_argb_remap(cairo_image_surface_get_data(color_diff),cairo_image_surface_get_data(color_channel),400,400,&r_channel);
 	cairo_surface_write_to_png(color_channel,"red.png");
-	argb_remap(cairo_image_surface_get_data(color_diff),cairo_image_surface_get_data(color_channel),400,400,&g_channel);
+	img_argb_remap(cairo_image_surface_get_data(color_diff),cairo_image_surface_get_data(color_channel),400,400,&g_channel);
 	cairo_surface_write_to_png(color_channel,"green.png");
-	argb_remap(cairo_image_surface_get_data(color_diff),cairo_image_surface_get_data(color_channel),400,400,&b_channel);
+	img_argb_remap(cairo_image_surface_get_data(color_diff),cairo_image_surface_get_data(color_channel),400,400,&b_channel);
 	cairo_surface_write_to_png(color_channel,"blue.png");
 	//img_edge_detect(cairo_image_surface_get_data(s),cairo_image_surface_get_data(color_diff),400,400,4);
 
 	cairo_surface_t *gray=cairo_image_surface_create(CAIRO_FORMAT_A8,400,400);
-	argb_to_gray(cairo_image_surface_get_data(s),cairo_image_surface_get_data(gray),400,400,MEAN_NUM);
+	img_argb_to_gray(cairo_image_surface_get_data(s),cairo_image_surface_get_data(gray),400,400,MEAN_NUM);
 	cairo_surface_write_to_png(gray,"gray.png");
 
 	cairo_surface_t *gray_diff=cairo_image_surface_create(CAIRO_FORMAT_A8,400,400);
@@ -53,7 +53,7 @@ void imgtool_test(cairo_surface_t *s){
 	cairo_surface_write_to_png(gray_diff,"gray_diff.png");
 
 	cairo_surface_t *bit=cairo_image_surface_create(CAIRO_FORMAT_A1,400,400);
-	gray_to_bit(cairo_image_surface_get_data(gray_diff),cairo_image_surface_get_data(bit),400,400,100);
+	img_gray_to_bit(cairo_image_surface_get_data(gray_diff),cairo_image_surface_get_data(bit),400,400,100);
 	cairo_surface_write_to_png(bit,"bit.png");
 }
 
@@ -63,16 +63,16 @@ void img2bin_test(cairo_surface_t *s){
   uint64_t l;
   w=cairo_image_surface_get_width(s);
   h=cairo_image_surface_get_height(s);
-  l=rgb_format(cairo_image_surface_get_data(s), &p, w, h, RGB_FORMAT_444);
+  l=img_rgb_format(cairo_image_surface_get_data(s), &p, w, h, RGB_FORMAT_444);
   g_file_set_contents("rgb444.bin", p, l, NULL);
   g_free(p);
-  l=rgb_format(cairo_image_surface_get_data(s), &p, w, h, RGB_FORMAT_565);
+  l=img_rgb_format(cairo_image_surface_get_data(s), &p, w, h, RGB_FORMAT_565);
   g_file_set_contents("rgb565.bin", p, l, NULL);
   g_free(p);
-  l=rgb_format(cairo_image_surface_get_data(s), &p, w, h, RGB_FORMAT_666);
+  l=img_rgb_format(cairo_image_surface_get_data(s), &p, w, h, RGB_FORMAT_666);
   g_file_set_contents("rgb666.bin", p, l, NULL);
   g_free(p);
-  l=rgb_format(cairo_image_surface_get_data(s), &p, w, h, RGB_FORMAT_888);
+  l=img_rgb_format(cairo_image_surface_get_data(s), &p, w, h, RGB_FORMAT_888);
   g_file_set_contents("rgb888.bin", p, l, NULL);
   g_free(p);
 }
@@ -91,23 +91,23 @@ void b2bin_test(){
   cairo_surface_write_to_png(surf, "A1.png");
   g_file_set_contents("A1.bin", cairo_image_surface_get_data(surf),64*cairo_image_surface_get_stride(surf), NULL);
   guint8 *p;
-  l=bit_map_format(cairo_image_surface_get_data(surf), &p, 70,64, 1);
+  l=img_bit_map_format(cairo_image_surface_get_data(surf), &p, 70,64, 1);
   g_file_set_contents("bit8.bin", p,l , NULL);
   g_free(p);
-  l=bit_map_format(cairo_image_surface_get_data(surf), &p, 70,64, 2);
+  l=img_bit_map_format(cairo_image_surface_get_data(surf), &p, 70,64, 2);
   g_file_set_contents("bit16.bin", p,l , NULL);
   g_free(p);
-  l=bit_map_format(cairo_image_surface_get_data(surf), &p, 70,64, 4);
+  l=img_bit_map_format(cairo_image_surface_get_data(surf), &p, 70,64, 4);
   g_file_set_contents("bit32.bin", p,l , NULL);
   g_free(p);
-  l=a1surf_scan_transform(surf,&p, SCAN_DIR_LEFT_TO_RIGHT, SCAN_DIR_TOP_TO_BOTTOM, 0, BIT_DIR_VERTICAL);
+  l=surf_a1_transform_by_scan(surf,&p, SCAN_DIR_LEFT_TO_RIGHT, SCAN_DIR_TOP_TO_BOTTOM, 0, BIT_DIR_VERTICAL);
   g_file_set_contents("scan.bin", p,l , NULL);
   g_free(p);
-  l=data_to_c_array_string(cairo_image_surface_get_data(surf), 64*cairo_image_surface_get_stride(surf), 16, &p);
+  l=img_data_to_c_array_string(cairo_image_surface_get_data(surf), 64*cairo_image_surface_get_stride(surf), 16, &p);
   g_print("C:\r\n%s\r\n",p);
   g_free(p);
 
-  l=data_to_asm_db_string(cairo_image_surface_get_data(surf), 64*cairo_image_surface_get_stride(surf), 16, &p);
+  l=img_data_to_asm_db_string(cairo_image_surface_get_data(surf), 64*cairo_image_surface_get_stride(surf), 16, &p);
   g_print("ASM:\r\n%s\r\n",p);
   g_free(p);
 }
@@ -128,13 +128,13 @@ void image_convert(const char *path){
   cairo_paint(cr);
   cairo_destroy(cr);
   cairo_surface_write_to_png(argb, "dog-argb.png");
-  argb_to_gray(cairo_image_surface_get_data(argb), cairo_image_surface_get_data(gray), 128, 64, MEAN_NUM);
+  img_argb_to_gray(cairo_image_surface_get_data(argb), cairo_image_surface_get_data(gray), 128, 64, MEAN_NUM);
   cairo_surface_mark_dirty (gray);
   cairo_surface_write_to_png(gray, "dog-gray.png");
-  gray_to_bit(cairo_image_surface_get_data(gray), cairo_image_surface_get_data(bit),128, 64, 128);
+  img_gray_to_bit(cairo_image_surface_get_data(gray), cairo_image_surface_get_data(bit),128, 64, 128);
   cairo_surface_write_to_png(bit, "dog-bit.png");
-  l=a1surf_scan_transform(bit, &p, SCAN_DIR_LEFT_TO_RIGHT, SCAN_DIR_TOP_TO_BOTTOM, Byte_LSB_FIRST, BIT_DIR_VERTICAL);
-  data_to_c_array_string(p, l, 16, &str);
+  l=surf_a1_transform_by_scan(bit, &p, SCAN_DIR_LEFT_TO_RIGHT, SCAN_DIR_TOP_TO_BOTTOM, Byte_LSB_FIRST, BIT_DIR_VERTICAL);
+  img_data_to_c_array_string(p, l, 16, &str);
   g_print(str);
 
 }

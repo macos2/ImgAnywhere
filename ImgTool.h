@@ -72,7 +72,7 @@ static RemapWeight a_as_bw={
  * @h : image height
  * @mean : mean method 	MEAN_NUM or MEAN_GEO
  */
-void argb_to_gray(uint8_t *argb_img, uint8_t *gray_img,
+void img_argb_to_gray(uint8_t *argb_img, uint8_t *gray_img,
 		uint32_t w,uint32_t h, MeanOpt mean);
 
 
@@ -83,7 +83,7 @@ void argb_to_gray(uint8_t *argb_img, uint8_t *gray_img,
  * G=GR*R+GG*G+GB*B+GA*A+GC
  * B=BR*R+BG*G+BB*B+BA*A+BC
  */
-void argb_remap(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,RemapWeight *weight);
+void img_argb_remap(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,RemapWeight *weight);
 
 /*
  * GRAY 8bit image to 1bit BLACK-WHITE image
@@ -94,7 +94,7 @@ void argb_remap(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,RemapWeight *weig
  * @threshold : pixel GRAY value > threshold output WHITE (or 1)
  * 				pixel GRAY value < threshold output BLACK (or 0)
  */
-void gray_to_bit(uint8_t *gray_img, uint32_t *bit_img,
+void img_gray_to_bit(uint8_t *gray_img, uint32_t *bit_img,
 		uint32_t w,uint32_t h, uint8_t threshold);
 
 /*
@@ -103,7 +103,7 @@ void gray_to_bit(uint8_t *gray_img, uint32_t *bit_img,
  * @w : image width.
  * @h : image height.
  */
-void argb_color_inv(uint8_t *argb,uint32_t w,uint32_t h);
+void img_argb_color_inv(uint8_t *argb,uint32_t w,uint32_t h);
 
 
 /*

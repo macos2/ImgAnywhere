@@ -28,7 +28,7 @@ typedef enum{
  * @step :  which the output width size should align to
  * return : the size of the output result.
  */
-uint64_t bit_map_format (uint8_t *in, uint8_t **out, uint32_t w, uint32_t h,uint8_t step);
+uint64_t img_bit_map_format (uint8_t *in, uint8_t **out, uint32_t w, uint32_t h,uint8_t step);
 
 /*
  * rgb_format : the rgb or argb image to special binary format,be care the alpha channel is not include(or disable).
@@ -39,10 +39,10 @@ uint64_t bit_map_format (uint8_t *in, uint8_t **out, uint32_t w, uint32_t h,uint
  * @format : output binary format.
  * return : the size of the output result.
  */
-uint64_t rgb_format(uint32_t *rgb_in,uint8_t **out,uint32_t w,uint32_t h,RGBFormat format);
+uint64_t img_rgb_format(uint32_t *rgb_in,uint8_t **out,uint32_t w,uint32_t h,RGBFormat format);
 
-uint64_t data_to_string(uint8_t *data,uint64_t length,uint32_t col,char *row_start,char *fmt,char *seperate,char **res);
-uint64_t data_to_c_array_string(uint8_t *data,uint64_t length,uint32_t col,char **res);
-uint64_t data_to_asm_db_string(uint8_t *data,uint64_t length,uint32_t col,char **res);
+uint64_t img_data_to_string(uint8_t *data,uint64_t length,uint32_t col,char *row_start,char *fmt,char *seperate,char **res);
+uint64_t img_data_to_c_array_string(uint8_t *data,uint64_t length,uint32_t col,char **res);
+uint64_t img_data_to_asm_db_string(uint8_t *data,uint64_t length,uint32_t col,char **res);
 
 #endif /* IMGFORMAT_H_ */

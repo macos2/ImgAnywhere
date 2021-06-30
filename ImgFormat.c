@@ -7,7 +7,7 @@
 
 #include "ImgFormat.h"
 
-uint64_t bit_map_format (uint8_t *in, uint8_t **out, uint32_t w, uint32_t h,uint8_t step) {
+uint64_t img_bit_map_format (uint8_t *in, uint8_t **out, uint32_t w, uint32_t h,uint8_t step) {
   uint32_t j;
   uint64_t res=0;
   if(step==0)step=1;
@@ -26,7 +26,7 @@ uint64_t bit_map_format (uint8_t *in, uint8_t **out, uint32_t w, uint32_t h,uint
   return res;
 }
 
-uint64_t rgb_format (uint32_t *rgb_in, uint8_t **out, uint32_t w, uint32_t h,
+uint64_t img_rgb_format (uint32_t *rgb_in, uint8_t **out, uint32_t w, uint32_t h,
 			RGBFormat format) {
   uint8_t *s=rgb_in,t;
   uint8_t *d=NULL;
@@ -91,7 +91,7 @@ uint64_t rgb_format (uint32_t *rgb_in, uint8_t **out, uint32_t w, uint32_t h,
 }
 
 
-uint64_t data_to_string(uint8_t *data,uint64_t length,uint32_t col,char *row_start,char *fmt,char *seperate,char **res){
+uint64_t img_data_to_string(uint8_t *data,uint64_t length,uint32_t col,char *row_start,char *fmt,char *seperate,char **res){
   uint64_t i;
   char *buff;
   uint64_t l=0;
@@ -116,14 +116,14 @@ uint64_t data_to_string(uint8_t *data,uint64_t length,uint32_t col,char *row_sta
   return l;
 }
 
-uint64_t data_to_c_array_string(uint8_t *data,uint64_t length,uint32_t col,char **res){
+uint64_t img_data_to_c_array_string(uint8_t *data,uint64_t length,uint32_t col,char **res){
   uint64_t l=0;
-  l= data_to_string(data, length, col, "\t", "0x%02x,", "\0", res);
+  l= img_data_to_string(data, length, col, "\t", "0x%02x,", "\0", res);
   return l;
 }
 
-uint64_t data_to_asm_db_string(uint8_t *data,uint64_t length,uint32_t col,char **res){
+uint64_t img_data_to_asm_db_string(uint8_t *data,uint64_t length,uint32_t col,char **res){
   uint64_t l=0;
-  l= data_to_string(data, length, col, "DB ", "%02xH", ",", res);
+  l= img_data_to_string(data, length, col, "DB ", "%02xH", ",", res);
   return l;
 }

@@ -8,7 +8,7 @@
 #include "ImgTool.h"
 
 
-void argb_to_gray(uint8_t *argb_img, uint8_t *gray_img,
+void img_argb_to_gray(uint8_t *argb_img, uint8_t *gray_img,
 		uint32_t w,uint32_t h, MeanOpt mean) {
 	uint32_t i;
 	uint32_t argb_len=w*h;
@@ -24,7 +24,7 @@ void argb_to_gray(uint8_t *argb_img, uint8_t *gray_img,
 			break;
 		case MEAN_GEO:
 		default:
-			x=s[1]*s[1]+s[2]*s[2]+s[3]*s[3];
+			x=s[0]*s[0]+s[1]*s[1]+s[2]*s[2];
 			temp=ceil(sqrt(x)*255/442);
 			*d=temp;
 			break;
@@ -40,7 +40,7 @@ void argb_to_gray(uint8_t *argb_img, uint8_t *gray_img,
  * G=GR*R+GG*G+GB*B+GA*A+GC
  * B=BR*R+BG*G+BB*B+BA*A+BC
  */
-void argb_remap(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,RemapWeight *weight){
+void img_argb_remap(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,RemapWeight *weight){
 	uint8_t *s=in,*r,*g,*b,*a;
 	uint8_t *d=out;
 	uint32_t i=w*h;
@@ -64,7 +64,7 @@ while(i){
 }
 }
 
-void gray_to_bit(uint8_t *gray_img, uint32_t *bit_img,
+void img_gray_to_bit(uint8_t *gray_img, uint32_t *bit_img,
 		uint32_t w,uint32_t h, uint8_t threshold) {
 	uint32_t i,j=0;
 	uint8_t k;
@@ -88,7 +88,7 @@ void gray_to_bit(uint8_t *gray_img, uint32_t *bit_img,
 }
 
 
-void argb_color_inv(uint8_t *argb,uint32_t w,uint32_t h){
+void img_argb_color_inv(uint8_t *argb,uint32_t w,uint32_t h){
   uint32_t i=w*h,j;
   for(j=0;j<i;j++){
     argb[0]=~argb[0];
