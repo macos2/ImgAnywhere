@@ -88,6 +88,23 @@ void gray_to_bit(uint8_t *gray_img, uint32_t *bit_img,
 }
 
 
+void argb_color_inv(uint8_t *argb,uint32_t w,uint32_t h){
+  uint32_t i=w*h,j;
+  for(j=0;j<i;j++){
+    argb[0]=~argb[0];
+    argb[1]=~argb[1];
+    argb[2]=~argb[2];
+    argb+=4;//next pixel ,each pixel 4 byte.
+  }
+}
+
+void img_byte_inv(uint8_t *img,uint32_t w,uint32_t h,uint8_t pixel_size){
+  uint32_t i=w*h*pixel_size,j;
+  for(j=0;j<i;j++){
+    img[j]=~img[j];
+  }
+}
+
 void img_rank(uint8_t *in, uint8_t *out,
 		uint32_t w_byte,uint32_t h, uint8_t rank){
 	uint8_t *s=in;

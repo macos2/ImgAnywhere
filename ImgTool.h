@@ -35,7 +35,7 @@ static DiffRatio diff_332={
 		.r=3,.bm=3,.rb=2,
 };
 
-static RemapWeight disable_alpha={
+static RemapWeight clear_alpha={
 		.RR=1,.GG=1,.BB=1,.AA=0,.AC=0xff,
 };
 static RemapWeight r_channel={
@@ -50,6 +50,18 @@ static RemapWeight b_channel={
 static RemapWeight a_channel={
 		.RR=0,.GG=0,.BB=0,.AA=1,
 		.RA=1,.GA=1,.BA=1,
+};
+
+//remap the color space into gray with a channel
+static RemapWeight a_as_gray={
+		.RR=0,.GG=0,.BB=0,.AA=0,
+		.RA=1,.GA=1,.BA=1,.AC=0xff,
+};
+
+//remap the color space into Black and White with a channel
+static RemapWeight a_as_bw={
+		.RR=0,.GG=0,.BB=0,.AA=0,
+		.RA=0xff,.GA=0xff,.BA=0xff,.AC=0xff,
 };
 
 /*
@@ -84,6 +96,25 @@ void argb_remap(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,RemapWeight *weig
  */
 void gray_to_bit(uint8_t *gray_img, uint32_t *bit_img,
 		uint32_t w,uint32_t h, uint8_t threshold);
+
+/*
+ * inverse all the color byte value except the alpha value.
+ * @argb : 32bit RGB or 32bit ARGB Format data.
+ * @w : image width.
+ * @h : image height.
+ */
+void argb_color_inv(uint8_t *argb,uint32_t w,uint32_t h);
+
+
+/*
+ * inverse all the byte value.
+ * @img : pointer to the image data.
+ * @w : image width.
+ * @h : image height.
+ * @pixel_size : each pixel size in byte.
+ */
+void img_byte_inv(uint8_t *img,uint32_t w,uint32_t h,uint8_t pixel_size);
+
 
 /*
  * Compute Image pixel value in n-rank

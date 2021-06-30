@@ -158,7 +158,12 @@ int main (int argc,char *argv[]){
 //	my_video_area_add_area(area,"test6",100,100.,100.,10.,0.);
 //	my_video_area_add_area(area,"test7",50,50.,100.,100.,0.);
 	//g_timeout_add(100,rotate_func,area);
-	GdkPixbuf *buf=gdk_pixbuf_new_from_file("rgb.jpg",NULL);
+	GdkPixbuf *buf=gdk_pixbuf_new_from_file("dog.jpg",NULL);
+
+	//buf=gdk_pixbuf_new_from_data(data, colorspace, has_alpha, bits_per_sample, width, height, rowstride, destroy_fn, destroy_fn_data);
+
+
+
 	//GdkPixbuf *buf=gdk_pixbuf_new_from_file("/home/tom/b26d0c84ed83d360f967199618a17aea.jpg",NULL);
 
 	//GdkPixbuf *buf=gdk_pixbuf_new_from_file("/home/tom/无标题.png",NULL);

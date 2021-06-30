@@ -95,7 +95,8 @@ uint64_t data_to_string(uint8_t *data,uint64_t length,uint32_t col,char *row_sta
   uint64_t i;
   char *buff;
   uint64_t l=0;
-  FILE *f=fopen("tmpfile","w+");
+  char tmp_name[]="tmpXXXXXX";
+  FILE *f=fdopen(mkstemp(tmp_name),"w+");
   for(i=0;i<length;i++){
     if(i%col==0){
       l+=fprintf(f,"\r\n");
@@ -110,7 +111,7 @@ uint64_t data_to_string(uint8_t *data,uint64_t length,uint32_t col,char *row_sta
   fread(buff,l,1,f);
   buff[l]=0x00;
   fclose(f);
-  unlink("tmpfile");
+  unlink(tmp_name);
   *res=buff;
   return l;
 }

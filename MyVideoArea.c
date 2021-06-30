@@ -491,6 +491,7 @@ void my_video_area_rotate_area_by_name(MyVideoArea *self, gchar *name, FixPoint 
 }
 
 void my_video_area_set_pixbuf(MyVideoArea *self,GdkPixbuf *pixbuf){
+  if(pixbuf==NULL)return;
 	gdouble temp;
 	MyVideoAreaPrivate *priv = my_video_area_get_instance_private(self);
 	if(priv->pixbuf!=NULL)g_object_unref(priv->pixbuf);
