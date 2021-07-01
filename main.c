@@ -80,7 +80,7 @@ void img2bin_test(cairo_surface_t *s){
 void b2bin_test(){
   uint32_t i,j;
   uint64_t l;
-  cairo_surface_t *surf=cairo_image_surface_create(CAIRO_FORMAT_A1, 128,64);
+  cairo_surface_t *surf=cairo_image_surface_create(CAIRO_FORMAT_A8, 128,64);
   cairo_t *cr=cairo_create(surf);
   cairo_arc(cr, 32., 32., 10., 0,G_PI);
   cairo_set_source_rgb(cr, 1., 1.,1.);
@@ -88,21 +88,26 @@ void b2bin_test(){
   cairo_stroke(cr);
   cairo_surface_flush(surf);
   cairo_destroy(cr);
-  cairo_surface_write_to_png(surf, "A1.png");
+  cairo_surface_write_to_png(surf, "A8.png");
+  cairo_surface_t *argb=surf_a8_to_rgba_surf(surf,  0xFF000000,0xFFFFFFFF);
+  cairo_surface_write_to_png(argb, "argb.png");
+
   g_file_set_contents("A1.bin", cairo_image_surface_get_data(surf),64*cairo_image_surface_get_stride(surf), NULL);
   guint8 *p;
-  l=img_bit_map_format(cairo_image_surface_get_data(surf), &p, 70,64, 1);
-  g_file_set_contents("bit8.bin", p,l , NULL);
-  g_free(p);
-  l=img_bit_map_format(cairo_image_surface_get_data(surf), &p, 70,64, 2);
-  g_file_set_contents("bit16.bin", p,l , NULL);
-  g_free(p);
-  l=img_bit_map_format(cairo_image_surface_get_data(surf), &p, 70,64, 4);
-  g_file_set_contents("bit32.bin", p,l , NULL);
-  g_free(p);
-  l=surf_a1_transform_by_scan(surf,&p, SCAN_DIR_LEFT_TO_RIGHT, SCAN_DIR_TOP_TO_BOTTOM, 0, BIT_DIR_VERTICAL);
-  g_file_set_contents("scan.bin", p,l , NULL);
-  g_free(p);
+//  l=img_bit_map_format(cairo_image_surface_get_data(surf), &p, 70,64, 1);
+//  g_file_set_contents("bit8.bin", p,l , NULL);
+//  g_free(p);
+//  l=img_bit_map_format(cairo_image_surface_get_data(surf), &p, 70,64, 2);
+//  g_file_set_contents("bit16.bin", p,l , NULL);
+//  g_free(p);
+//  l=img_bit_map_format(cairo_image_surface_get_data(surf), &p, 70,64, 4);
+//  g_file_set_contents("bit32.bin", p,l , NULL);
+//  g_free(p);
+
+//  l=surf_a1_transform_by_scan(surf,&p, SCAN_DIR_LEFT_TO_RIGHT, SCAN_DIR_TOP_TO_BOTTOM, 0, BIT_DIR_VERTICAL);
+//  g_file_set_contents("scan.bin", p,l , NULL);
+//  g_free(p);
+
   l=img_data_to_c_array_string(cairo_image_surface_get_data(surf), 64*cairo_image_surface_get_stride(surf), 16, &p);
   g_print("C:\r\n%s\r\n",p);
   g_free(p);
@@ -179,8 +184,8 @@ int main (int argc,char *argv[]){
 	cairo_surface_write_to_png(s,"result.png");
 //	imgtool_test(s);
 //	img2bin_test(s);
-//	 b2bin_test();
-	 image_convert("dog.jpg");
+	 b2bin_test();
+	 //image_convert("dog.jpg");
 
 
 

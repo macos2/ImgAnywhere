@@ -165,7 +165,7 @@ cairo_surface_t* surf_a1_to_rgba_surf(cairo_surface_t *a1_surf,
 	cairo_surface_t *argb;
 	guint32 w, h, i, j;
 	guint8 bit;
-	guint32 *s, *d, b;
+	guint32  *d,*s,b;
 	w = cairo_image_surface_get_width(a1_surf);
 	h = cairo_image_surface_get_height(a1_surf);
 	argb = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
@@ -180,6 +180,7 @@ cairo_surface_t* surf_a1_to_rgba_surf(cairo_surface_t *a1_surf,
 			} else {
 				*d = background;
 			}
+			d++;
 			bit++;
 			b = b >> 1;
 			if (bit > 31) {
@@ -188,7 +189,7 @@ cairo_surface_t* surf_a1_to_rgba_surf(cairo_surface_t *a1_surf,
 				bit = 0;
 			}
 		}
-		s++;
+		if(w%32)s++;//图像宽度非32bit对齐
 	}
 	cairo_surface_mark_dirty(argb);
 	return argb;
