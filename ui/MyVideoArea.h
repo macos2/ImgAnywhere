@@ -5,12 +5,12 @@
  *      Author: tom
  */
 
-#ifndef MYVIDEOAREA_H_
-#define MYVIDEOAREA_H_
+#ifndef UI_MYVIDEOAREA_H_
+#define UI_MYVIDEOAREA_H_
 #include <glib.h>
 #include <glib-object.h>
 #include <gtk/gtk.h>
-#include "ImgTool.h"
+#include "../ImgTool.h"
 #define MY_TYPE_VIDEO_AREA my_video_area_get_type()
 
 typedef enum{
@@ -26,6 +26,8 @@ typedef struct{
 	gfloat w,h;
 	gfloat offsetX,offsetY;
 	cairo_matrix_t obj_mat;
+	gchar *label;
+	gchar *describe;
 }VideoBoxArea;
 
 G_DECLARE_DERIVABLE_TYPE(MyVideoArea,my_video_area,MY,VIDEO_AREA,GtkDrawingArea);
@@ -47,4 +49,4 @@ void my_video_area_set_pixbuf(MyVideoArea *self,GdkPixbuf *pixbuf);
 const GdkPixbuf *my_video_area_get_pixbuf(MyVideoArea *self);
 void my_video_area_set_scale(MyVideoArea *self,gdouble scale);
 cairo_surface_t *my_video_area_get_area_content_by_name(MyVideoArea *self,gchar *name);
-#endif /* MYVIDEOAREA_H_ */
+#endif /* UI_MYVIDEOAREA_H_ */

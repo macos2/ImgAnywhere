@@ -8,8 +8,9 @@
 
 #include "ImgFormat.h"
 #include "SurfFormat.h"
-#include "MyVideoArea.h"
 #include "ImgTool.h"
+#include "ui/MyMain.h"
+#include "ui/MyVideoArea.h"
 gdouble angle;
 
 gboolean rotate_func(MyVideoArea *area){
@@ -108,11 +109,11 @@ void b2bin_test(){
 //  g_file_set_contents("scan.bin", p,l , NULL);
 //  g_free(p);
 
-  l=img_data_to_c_array_string(cairo_image_surface_get_data(surf), 64*cairo_image_surface_get_stride(surf), 16, &p);
+  l=img_data_to_c_array_string(cairo_image_surface_get_data(surf), 64*cairo_image_surface_get_stride(surf), 16, "nothing",&p);
   g_print("C:\r\n%s\r\n",p);
   g_free(p);
 
-  l=img_data_to_asm_db_string(cairo_image_surface_get_data(surf), 64*cairo_image_surface_get_stride(surf), 16, &p);
+  l=img_data_to_asm_db_string(cairo_image_surface_get_data(surf), 64*cairo_image_surface_get_stride(surf), 16, "nothing",&p);
   g_print("ASM:\r\n%s\r\n",p);
   g_free(p);
 }
@@ -139,7 +140,7 @@ void image_convert(const char *path){
   img_gray_to_bit(cairo_image_surface_get_data(gray), cairo_image_surface_get_data(bit),128, 64, 128);
   cairo_surface_write_to_png(bit, "dog-bit.png");
   l=surf_a1_transform_by_scan(bit, &p, SCAN_DIR_LEFT_TO_RIGHT, SCAN_DIR_TOP_TO_BOTTOM, Byte_LSB_FIRST, BIT_DIR_VERTICAL);
-  img_data_to_c_array_string(p, l, 16, &str);
+  img_data_to_c_array_string(p, l, 16, "nothing",&str);
   g_print(str);
 
 }
@@ -186,12 +187,8 @@ int main (int argc,char *argv[]){
 //	img2bin_test(s);
 	 b2bin_test();
 	 //image_convert("dog.jpg");
-
-
-
-
-
-
+	 MyMain *w=g_object_new(MY_TYPE_MAIN,NULL);
+	 gtk_widget_show_all(w);
 	gtk_main();
 	return 0;
 }

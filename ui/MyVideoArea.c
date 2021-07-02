@@ -6,6 +6,7 @@
  */
 
 #include "MyVideoArea.h"
+
 #include "math.h"
 
 typedef struct {
@@ -492,10 +493,10 @@ void my_video_area_rotate_area_by_name(MyVideoArea *self, gchar *name, FixPoint 
 
 void my_video_area_set_pixbuf(MyVideoArea *self,GdkPixbuf *pixbuf){
   if(pixbuf==NULL)return;
-	gdouble temp;
 	MyVideoAreaPrivate *priv = my_video_area_get_instance_private(self);
 	if(priv->pixbuf!=NULL)g_object_unref(priv->pixbuf);
 	priv->pixbuf=g_object_ref(pixbuf);
+	gtk_widget_set_size_request(self,priv->scale*gdk_pixbuf_get_width(pixbuf),priv->scale*gdk_pixbuf_get_height(pixbuf));
 }
 
 const GdkPixbuf *my_video_area_get_pixbuf(MyVideoArea *self){

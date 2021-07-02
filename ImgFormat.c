@@ -91,12 +91,13 @@ uint64_t img_rgb_format (uint32_t *rgb_in, uint8_t **out, uint32_t w, uint32_t h
 }
 
 
-uint64_t img_data_to_string(uint8_t *data,uint64_t length,uint32_t col,char *row_start,char *fmt,char *seperate,char **res){
+uint64_t img_data_to_string(uint8_t *data,char *note,uint64_t length,uint32_t col,char *row_start,char *fmt,char *seperate,char **res){
   uint64_t i;
   char *buff;
   uint64_t l=0;
   char tmp_name[]="tmpXXXXXX";
   FILE *f=fdopen(mkstemp(tmp_name),"w+");
+  fprintf(f,"%s\r\n",note);
   for(i=0;i<length;i++){
     if(i%col==0){
       l+=fprintf(f,"\r\n");
@@ -116,14 +117,28 @@ uint64_t img_data_to_string(uint8_t *data,uint64_t length,uint32_t col,char *row
   return l;
 }
 
-uint64_t img_data_to_c_array_string(uint8_t *data,uint64_t length,uint32_t col,char **res){
+uint64_t img_data_to_c_array_string(uint8_t *data,uint64_t length,uint32_t col,char *note,char **res){
   uint64_t l=0;
-  l= img_data_to_string(data, length, col, "\t", "0x%02x,", "\0", res);
+  char *n=malloc(strlen(note)+3);
+  if(note==NULL){
+    sprintf(n,"");
+  }else{
+    sprintf(n,"//%s",note);
+  }
+  l= img_data_to_string(data, n, length, col, "\t", "0x%02X,", "\0", res);
+  free(n);
   return l;
 }
 
-uint64_t img_data_to_asm_db_string(uint8_t *data,uint64_t length,uint32_t col,char **res){
+uint64_t img_data_to_asm_db_string(uint8_t *data,uint64_t length,uint32_t col,char *note,char **res){
   uint64_t l=0;
-  l= img_data_to_string(data, length, col, "DB ", "%02xH", ",", res);
+  char *n=malloc(strlen(note)+3);
+  if(note==NULL){
+    sprintf(n,"");
+  }else{
+    sprintf(n,";%s",note);
+  }
+  l= img_data_to_string(data, n, length, col, "DB ", "%02XH", ",", res);
+  free(n);
   return l;
 }
