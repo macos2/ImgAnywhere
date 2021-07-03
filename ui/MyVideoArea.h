@@ -33,16 +33,18 @@ typedef struct{
 G_DECLARE_DERIVABLE_TYPE(MyVideoArea,my_video_area,MY,VIDEO_AREA,GtkDrawingArea);
 typedef struct _MyVideoAreaClass{
 	GtkDrawingAreaClass parent_class;
+	void (*area_select)(VideoBoxArea *area);
+	void (*area_unselect)(VideoBoxArea *area);
 	void (*area_rotate)(VideoBoxArea *area,gdouble *angle);
 	void (*area_move)(VideoBoxArea *area,gdouble *x,gdouble *y);
 	void (*area_resize)(VideoBoxArea *area,gdouble *add_w,gdouble *add_h);
 };
 
 MyVideoArea *my_video_area_new();
-void my_video_area_add_area(MyVideoArea *self,gchar *name,gfloat x,gfloat y,gfloat w,gfloat h);
+void my_video_area_add_area(MyVideoArea *self,gchar *name,gchar *desribe,gfloat x,gfloat y,gfloat w,gfloat h);
 void my_video_area_remove_area(MyVideoArea *self,gchar *name);
+void my_video_area_rename_area(MyVideoArea *self,gchar *old_name,gchar *new_name);
 VideoBoxArea *my_video_area_get_area(MyVideoArea *self,gchar *name);
-gchar *my_video_area_get_name(MyVideoArea *self,VideoBoxArea *area);
 void my_video_area_move_area_by_name(MyVideoArea *self,gchar *name,gdouble x,gdouble y);
 void my_video_area_rotate_area_by_name(MyVideoArea *self,gchar *name,FixPoint point,gfloat angle_degree);
 void my_video_area_set_pixbuf(MyVideoArea *self,GdkPixbuf *pixbuf);

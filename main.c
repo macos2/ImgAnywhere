@@ -148,16 +148,17 @@ void image_convert(const char *path){
 
 int main (int argc,char *argv[]){
 	gtk_init(&argc,&argv);
+	/*
 	GtkWidget *win=gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	MyVideoArea *area=my_video_area_new();
 	angle=0.;
-	my_video_area_add_area(area,"test",300.,100.,30.,30.);
-	my_video_area_add_area(area,"test2",200.,100.,30.,30.);
+	my_video_area_add_area(area,"test","lock",300.,100.,30.,30.);
+	my_video_area_add_area(area,"test2","unlock",200.,100.,30.,30.);
 	//my_video_area_add_area(area,"test3",1200.,200.,400.,400.);
-	my_video_area_add_area(area,"test3",500.,800.,400.,400.);
-	my_video_area_add_area(area,"test4",300.,100.,30.,30.);
-	my_video_area_add_area(area,"test5",200.,100.,30.,30.);
-	my_video_area_add_area(area,"test6",100,100.,100.,100.);
+	my_video_area_add_area(area,"test3",NULL,500.,800.,400.,400.);
+	my_video_area_add_area(area,"test4",NULL,300.,100.,30.,30.);
+	my_video_area_add_area(area,"test5",NULL,200.,100.,30.,30.);
+	my_video_area_add_area(area,"test6",NULL,100,100.,100.,100.);
 	//my_video_area_rotate_area_by_name(area,"test3",FIX_CENTRE,180.);
 //	my_video_area_add_area(area,"test4",100,100.,100.,10.,20.);
 //	my_video_area_add_area(area,"test5",100,100.,100.,10.,30.);
@@ -187,6 +188,7 @@ int main (int argc,char *argv[]){
 //	img2bin_test(s);
 	 b2bin_test();
 	 //image_convert("dog.jpg");
+	 */
 	 MyMain *w=g_object_new(MY_TYPE_MAIN,NULL);
 	 gtk_widget_show_all(w);
 	gtk_main();
