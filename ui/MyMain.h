@@ -22,5 +22,7 @@ typedef struct _MyMainClass{
   GtkWindowClass parent_class;
 };
 
+void my_main_add_area(MyMain *self,gchar *label,gfloat x,gfloat y,gfloat w,gfloat h);
+
 G_END_DECLS
 #endif /* UI_MYMAIN_H_ */

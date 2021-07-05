@@ -41,7 +41,7 @@ typedef struct _MyVideoAreaClass{
 };
 
 MyVideoArea *my_video_area_new();
-void my_video_area_add_area(MyVideoArea *self,gchar *name,gchar *desribe,gfloat x,gfloat y,gfloat w,gfloat h);
+VideoBoxArea *my_video_area_add_area(MyVideoArea *self,gchar *name,gchar *desribe,gfloat x,gfloat y,gfloat w,gfloat h);
 void my_video_area_remove_area(MyVideoArea *self,gchar *name);
 void my_video_area_rename_area(MyVideoArea *self,gchar *old_name,gchar *new_name);
 VideoBoxArea *my_video_area_get_area(MyVideoArea *self,gchar *name);
@@ -50,5 +50,6 @@ void my_video_area_rotate_area_by_name(MyVideoArea *self,gchar *name,FixPoint po
 void my_video_area_set_pixbuf(MyVideoArea *self,GdkPixbuf *pixbuf);
 const GdkPixbuf *my_video_area_get_pixbuf(MyVideoArea *self);
 void my_video_area_set_scale(MyVideoArea *self,gdouble scale);
+gdouble my_video_area_get_scale(MyVideoArea *self);
 cairo_surface_t *my_video_area_get_area_content_by_name(MyVideoArea *self,gchar *name);
 #endif /* UI_MYVIDEOAREA_H_ */
