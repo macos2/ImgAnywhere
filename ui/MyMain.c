@@ -209,13 +209,15 @@ void rotate_changed_cb(GtkSpinButton *button, MyMain *self) {
 
 void scale_changed_cb(GtkSpinButton *button, MyMain *self) {
 	GET_PRIV;
-	gdouble h_max,w_max,old_scale;
+	gdouble h_max,w_max;
 	GtkAdjustment *h=gtk_scrolled_window_get_hadjustment(priv->video_box);
 	GtkAdjustment *w=gtk_scrolled_window_get_vadjustment(priv->video_box);
 	h_max=gtk_adjustment_get_upper(h);
 	w_max=gtk_adjustment_get_upper(w);
 	gdouble hr=gtk_adjustment_get_value(h);
 	gdouble wr=gtk_adjustment_get_value(w);
+	gdouble old_scale=my_video_area_get_scale(priv->video_area);
+	gdouble new_scale=gtk_spin_button_get_value(button);
 	if(h_max!=0)
 		hr/=h_max;
 		//old_scale=h_max/gdk_pixbuf_get_height(my_video_area_get_pixbuf(priv->video_area));
@@ -226,9 +228,9 @@ void scale_changed_cb(GtkSpinButton *button, MyMain *self) {
 	else
 		wr=0.5;
 	my_video_area_set_scale(priv->video_area,
-			gtk_spin_button_get_value(button));
-	gtk_adjustment_set_value(h,h_max*hr);
-	gtk_adjustment_set_value(w,w_max*wr);
+			new_scale);
+	gtk_adjustment_set_value(h,h_max*hr*new_scale/old_scale);
+	gtk_adjustment_set_value(w,w_max*wr*new_scale/old_scale);
 	gtk_widget_queue_draw(priv->video_area);
 }
 
@@ -247,6 +249,27 @@ gboolean scale_output_cb(GtkSpinButton *button,MyMain *self){
 	gdouble value=gtk_spin_button_get_value(button);
 	value*=100.;
 	gchar *text=g_strdup_printf("%.2f%%",value);
+	gtk_entry_set_text(button,text);
+	g_free(text);
+	return TRUE;
+}
+
+void play_speed_cb(GtkSpinButton *button, MyMain *self){
+g_print("%s\n",__func__);
+}
+gint play_speed_input_cb (GtkSpinButton *spin_button,
+               gdouble       *new_value,
+			   MyMain *self){
+	gchar *text=g_strdup(gtk_entry_get_text(spin_button));
+	gchar *percent=g_strstr_len(text,-1,"x");
+	if(percent!=NULL)*percent=' ';
+	*new_value=g_strtod(text,NULL);
+	g_free(text);
+	return TRUE;
+}
+gboolean play_speed_output_cb(GtkSpinButton *button,MyMain *self){
+	gdouble value=gtk_spin_button_get_value(button);
+	gchar *text=g_strdup_printf("x%.2f",value);
 	gtk_entry_set_text(button,text);
 	g_free(text);
 	return TRUE;
@@ -383,6 +406,10 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_callback(klass, align_right_cb);
 	gtk_widget_class_bind_template_callback(klass, align_top_cb);
 
+	gtk_widget_class_bind_template_callback(klass, play_speed_cb);
+	gtk_widget_class_bind_template_callback(klass, play_speed_input_cb);
+	gtk_widget_class_bind_template_callback(klass, play_speed_output_cb);
+
 }
 
 static void my_main_init(MyMain *self) {
@@ -396,8 +423,7 @@ static void my_main_init(MyMain *self) {
 	//gtk_box_pack_start (priv->video_box, priv->video_area, TRUE, TRUE, 0);
 	my_video_area_set_pixbuf(priv->video_area,
 			gdk_pixbuf_new_from_file("dog.jpg", NULL));
-	gtk_widget_get_size_request(priv->video_area, &w, &h);
-	gtk_paned_set_position(priv->paned, w);
+	gtk_paned_set_position(priv->paned, 550);
 	g_signal_connect(priv->video_area, "area_select", area_select, self);
 	g_signal_connect(priv->video_area, "area_move", area_move, self);
 	g_signal_connect(priv->video_area, "area_resize", area_resize, self);
