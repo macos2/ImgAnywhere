@@ -249,10 +249,10 @@ static void my_main_init (MyMain *self) {
 			    gdk_pixbuf_new_from_file ("dog.jpg", NULL));
   gtk_widget_get_size_request (priv->video_area, &w, &h);
   gtk_paned_set_position (priv->paned, w);
-//  g_signal_connect(priv->video_area, "area_select", area_select, self);
-//  g_signal_connect(priv->video_area, "area_move", area_move, self);
-//  g_signal_connect(priv->video_area, "area_resize", area_resize, self);
-//  g_signal_connect(priv->video_area, "area_rotate", area_rotate, self);
+  g_signal_connect(priv->video_area, "area_select", area_select, self);
+  g_signal_connect(priv->video_area, "area_move", area_move, self);
+  g_signal_connect(priv->video_area, "area_resize", area_resize, self);
+  g_signal_connect(priv->video_area, "area_rotate", area_rotate, self);
   my_main_add_area (self, "0", 0, 0, 100, 200);
   my_main_add_area (self, "1",100, 200, 100, 200);
 }

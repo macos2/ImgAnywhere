@@ -380,7 +380,7 @@ gboolean my_video_area_pointer_motion (MyVideoArea *self, GdkEventMotion *event,
     priv->mouseY = event->y;
   }
   gtk_widget_queue_draw (self);
-  return FALSE;
+  return TRUE;
 }
 
 gboolean my_video_area_pointer_press (MyVideoArea *self, GdkEventButton *event,
@@ -389,7 +389,10 @@ gboolean my_video_area_pointer_press (MyVideoArea *self, GdkEventButton *event,
   priv->pressed = TRUE;
   priv->pressX = event->x;
   priv->pressY = event->y;
-  priv->select_index = 0;
+  if(event->button==3)
+	  priv->select_index++;
+  else
+	  priv->select_index = 0;
   if (priv->pre_sel_area != NULL) {
     if (priv->pre_sel_area != priv->sel_area) {
       g_signal_emit_by_name (self, "area_unselect", priv->sel_area);
@@ -580,16 +583,16 @@ void my_video_area_rotate_area (MyVideoArea *self, VideoBoxArea *area,
   gdouble angle = (angle_degree / 180.) * G_PI;
   switch (point) {
     case FIX_LEFT_TOP:
-      fix_point_rotate (area->w * -0.5, area->h * -0.5, angle, &area->obj_mat);
+      fix_point_rotate (area->w*priv->scale * -0.5, area->h*priv->scale * -0.5, angle, &area->obj_mat);
       break;
     case FIX_LEFT_BOTTOM:
-      fix_point_rotate (area->w * -0.5, area->h * 0.5, angle, &area->obj_mat);
+      fix_point_rotate (area->w*priv->scale * -0.5, area->h*priv->scale * 0.5, angle, &area->obj_mat);
       break;
     case FIX_RIGHT_TOP:
-      fix_point_rotate (area->w * 0.5, area->h * -0.5, angle, &area->obj_mat);
+      fix_point_rotate (area->w*priv->scale * 0.5, area->h*priv->scale * -0.5, angle, &area->obj_mat);
       break;
     case FIX_RIGHT_BOTTOM:
-      fix_point_rotate (area->w * 0.5, area->h * 0.5, angle, &area->obj_mat);
+      fix_point_rotate (area->w*priv->scale * 0.5, area->h*priv->scale * 0.5, angle, &area->obj_mat);
       break;
     default: //FIX_CENTRE
       fix_point_rotate (0., 0., angle, &area->obj_mat);
@@ -624,7 +627,15 @@ const GdkPixbuf* my_video_area_get_pixbuf (MyVideoArea *self) {
 void my_video_area_set_scale (MyVideoArea *self, gdouble scale) {
   if (scale <= 0) return;
   gint w, h;
+  VideoBoxArea *area;
   MyVideoAreaPrivate *priv = my_video_area_get_instance_private (self);
+  GList *l=priv->area_list;
+  while(l!=NULL){
+	  area=l->data;
+	  area->obj_mat.x0*=scale/priv->scale;
+	  area->obj_mat.y0*=scale/priv->scale;
+	  l=l->next;
+  }
   priv->scale = scale;
   if (priv->pixbuf != NULL) {
     w = gdk_pixbuf_get_width (priv->pixbuf);
