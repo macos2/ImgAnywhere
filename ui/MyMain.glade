@@ -227,8 +227,7 @@
           <object class="GtkPaned" id="paned">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="position">450</property>
-            <property name="position_set">True</property>
+            <property name="position">734</property>
             <property name="wide_handle">True</property>
             <child>
               <object class="GtkBox">
@@ -353,10 +352,13 @@ audio-volume-medium-symbolic</property>
                       <object class="GtkSpinButton">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="width_chars">10</property>
+                        <property name="primary_icon_name">edit-find-symbolic</property>
                         <property name="adjustment">scale</property>
                         <property name="digits">2</property>
-                        <property name="numeric">True</property>
                         <property name="update_policy">if-valid</property>
+                        <signal name="input" handler="scale_input_cb" object="MyMain" swapped="no"/>
+                        <signal name="output" handler="scale_output_cb" object="MyMain" swapped="no"/>
                         <signal name="value-changed" handler="scale_changed_cb" object="MyMain" swapped="no"/>
                       </object>
                       <packing>
@@ -483,37 +485,69 @@ audio-volume-medium-symbolic</property>
                               <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="margin_left">5</property>
-                                <property name="margin_right">5</property>
-                                <property name="margin_start">5</property>
-                                <property name="margin_end">5</property>
-                                <property name="margin_top">5</property>
-                                <property name="margin_bottom">5</property>
+                                <property name="orientation">vertical</property>
                                 <child>
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="orientation">vertical</property>
                                     <child>
-                                      <object class="GtkSpinButton">
+                                      <object class="GtkBox">
                                         <property name="visible">True</property>
-                                        <property name="can_focus">True</property>
-                                        <property name="adjustment">size_w</property>
-                                        <property name="update_policy">if-valid</property>
-                                        <signal name="value-changed" handler="size_changed_cb" object="MyMain" swapped="no"/>
+                                        <property name="can_focus">False</property>
+                                        <property name="orientation">vertical</property>
+                                        <property name="homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkSpinButton">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="text" translatable="yes">1</property>
+                                            <property name="adjustment">size_w</property>
+                                            <property name="update_policy">if-valid</property>
+                                            <property name="value">1</property>
+                                            <signal name="value-changed" handler="size_changed_cb" object="MyMain" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">True</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="text" translatable="yes">1</property>
+                                            <property name="adjustment">size_h</property>
+                                            <property name="value">1</property>
+                                            <signal name="value-changed" handler="size_changed_cb" object="MyMain" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">True</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
                                       </object>
                                       <packing>
-                                        <property name="expand">False</property>
+                                        <property name="expand">True</property>
                                         <property name="fill">True</property>
                                         <property name="position">0</property>
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkSpinButton">
+                                      <object class="GtkToggleButton" id="size_radio_lock">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
-                                        <property name="adjustment">size_h</property>
-                                        <signal name="value-changed" handler="size_changed_cb" object="MyMain" swapped="no"/>
+                                        <property name="receives_default">True</property>
+                                        <property name="relief">none</property>
+                                        <signal name="toggled" handler="radio_lock_cb" object="MyMain" swapped="no"/>
+                                        <child>
+                                          <object class="GtkImage">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="icon_name">changes-prevent-symbolic</property>
+                                          </object>
+                                        </child>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -529,18 +563,30 @@ audio-volume-medium-symbolic</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkToggleButton" id="size_radio_lock">
+                                  <object class="GtkButtonBox">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
-                                    <property name="receives_default">True</property>
-                                    <property name="relief">none</property>
-                                    <signal name="toggled" handler="radio_lock_cb" object="MyMain" swapped="no"/>
+                                    <property name="can_focus">False</property>
+                                    <property name="layout_style">start</property>
                                     <child>
-                                      <object class="GtkImage">
+                                      <object class="GtkButton">
                                         <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="icon_name">changes-allow-symbolic</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="receives_default">True</property>
+                                        <property name="relief">none</property>
+                                        <signal name="clicked" handler="size_fit_cb" swapped="no"/>
+                                        <child>
+                                          <object class="GtkImage">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="icon_name">zoom-original-symbolic</property>
+                                          </object>
+                                        </child>
                                       </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
                                     </child>
                                   </object>
                                   <packing>
@@ -612,6 +658,131 @@ audio-volume-medium-symbolic</property>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
                                     <property name="position">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkGrid">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="row_homogeneous">True</property>
+                                    <property name="column_homogeneous">True</property>
+                                    <child>
+                                      <object class="GtkButton">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="receives_default">True</property>
+                                        <property name="relief">none</property>
+                                        <signal name="clicked" handler="align_top_cb" object="MyMain" swapped="no"/>
+                                        <child>
+                                          <object class="GtkImage">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="icon_name">go-top-symbolic</property>
+                                          </object>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="left_attach">1</property>
+                                        <property name="top_attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="receives_default">True</property>
+                                        <property name="relief">none</property>
+                                        <signal name="clicked" handler="align_left_cb" object="MyMain" swapped="no"/>
+                                        <child>
+                                          <object class="GtkImage">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="icon_name">go-first-symbolic</property>
+                                          </object>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="left_attach">0</property>
+                                        <property name="top_attach">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="receives_default">True</property>
+                                        <property name="relief">none</property>
+                                        <signal name="clicked" handler="align_right_cb" object="MyMain" swapped="no"/>
+                                        <child>
+                                          <object class="GtkImage">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="icon_name">go-last-symbolic</property>
+                                          </object>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="left_attach">2</property>
+                                        <property name="top_attach">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="receives_default">True</property>
+                                        <property name="relief">none</property>
+                                        <signal name="clicked" handler="align_buttom_cb" object="MyMain" swapped="no"/>
+                                        <child>
+                                          <object class="GtkImage">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="icon_name">go-bottom-symbolic</property>
+                                          </object>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="left_attach">1</property>
+                                        <property name="top_attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="receives_default">True</property>
+                                        <property name="relief">none</property>
+                                        <signal name="clicked" handler="align_center_cb" object="MyMain" swapped="no"/>
+                                        <child>
+                                          <object class="GtkImage">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="icon_name">zoom-fit-best-symbolic</property>
+                                          </object>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="left_attach">1</property>
+                                        <property name="top_attach">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
                                   </packing>
                                 </child>
                               </object>

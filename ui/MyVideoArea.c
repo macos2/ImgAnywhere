@@ -320,11 +320,11 @@ gboolean my_video_area_pointer_motion (MyVideoArea *self, GdkEventMotion *event,
       cairo_matrix_transform_point (&res, &x0, &y0);
       w = (x - x0)/priv->scale * 2.;
       h = (y - y0)/priv->scale * 2.;
-      g_signal_emit_by_name (self, "area_resize", priv->sel_area, &w, &h, NULL);
       priv->sel_area->w += w;
       priv->sel_area->h += h;
       if (priv->sel_area->w < 8.) priv->sel_area->w = 8.;
       if (priv->sel_area->h < 8.) priv->sel_area->h = 8.;
+      g_signal_emit_by_name (self, "area_resize", priv->sel_area, &w, &h, NULL);
     }
     else {
       //rotate area
@@ -562,9 +562,9 @@ VideoBoxArea* my_video_area_get_area (MyVideoArea *self, gchar *label) {
 void my_video_area_move_area (MyVideoArea *self, VideoBoxArea *area, gdouble x,
 			      gdouble y) {
   MyVideoAreaPrivate *priv = my_video_area_get_instance_private (self);
-  g_signal_emit_by_name (self, "area_move", area, &x, &y, NULL);
   area->offsetX += x;
   area->offsetY += y;
+  g_signal_emit_by_name (self, "area_move", area, &x, &y, NULL);
 }
 
 void my_video_area_move_area_by_name (MyVideoArea *self, gchar *label, gdouble x,
@@ -579,7 +579,6 @@ void my_video_area_move_area_by_name (MyVideoArea *self, gchar *label, gdouble x
 void my_video_area_rotate_area (MyVideoArea *self, VideoBoxArea *area,
 				FixPoint point, gdouble angle_degree) {
   MyVideoAreaPrivate *priv = my_video_area_get_instance_private (self);
-  g_signal_emit_by_name (self, "area_rotate", area, &angle_degree, NULL);
   gdouble angle = (angle_degree / 180.) * G_PI;
   switch (point) {
     case FIX_LEFT_TOP:
@@ -598,6 +597,7 @@ void my_video_area_rotate_area (MyVideoArea *self, VideoBoxArea *area,
       fix_point_rotate (0., 0., angle, &area->obj_mat);
       break;
   }
+  g_signal_emit_by_name (self, "area_rotate", area, &angle_degree, NULL);
 }
 
 void my_video_area_rotate_area_by_name (MyVideoArea *self, gchar *label,
