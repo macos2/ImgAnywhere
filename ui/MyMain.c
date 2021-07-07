@@ -6,7 +6,6 @@
  */
 
 #include "MyMain.h"
-
 #define GET_PRIV   MyMainPrivate *priv=my_main_get_instance_private(self)
 
 typedef struct {
@@ -16,7 +15,7 @@ typedef struct {
 } AreaInfo;
 
 typedef struct {
-	GtkAdjustment *pos_x, *pos_y, *progress, *rotate, *size_h, *size_w, *volume;
+	GtkAdjustment *pos_x, *pos_y, *progress, *rotate, *size_h, *size_w, *volume,*scale,*play_speed;
 	GtkScrolledWindow *video_box;
 	MyVideoArea *video_area;
 	GtkTreeView *modifier_view;
@@ -26,6 +25,9 @@ typedef struct {
 	GtkEntry *area_label;
 	GHashTable *area_table;
 	gdouble r_w_h;
+	GstPipeline *pline;
+	GstElement *video_sink,*playbin;
+	GstState state;
 } MyMainPrivate;
 
 G_DEFINE_TYPE_WITH_CODE(MyMain, my_main, GTK_TYPE_WINDOW,
@@ -155,11 +157,11 @@ void label_changed_cb(GtkEntry *label, MyMain *self) {
 	gtk_widget_queue_draw(priv->video_area);
 }
 
-void size_changed_cb(GtkSpinButton *button, MyMain *self) {
+void size_changed_cb(GtkSpinButton *button,MyMain *self) {
 	GET_PRIV;
 	if (priv->current_area == NULL)
 		return;
-	gdouble value = gtk_spin_button_get_value(button);
+	gdouble value=gtk_spin_button_get_value(button);
 	GtkAdjustment *adj = gtk_spin_button_get_adjustment(button);
 	if (adj == priv->size_w) {
 		priv->current_area->area->w = value;
@@ -178,26 +180,29 @@ void size_changed_cb(GtkSpinButton *button, MyMain *self) {
 		}
 	}
 	gtk_widget_queue_draw(priv->video_area);
+	return;
 }
 
 void pos_changed_cb(GtkSpinButton *button, MyMain *self) {
 	GET_PRIV;
 	if (priv->current_area == NULL)
 		return;
-	gdouble value = gtk_spin_button_get_value(button);
+	gdouble value=gtk_spin_button_get_value(button);
 	GtkAdjustment *adj = gtk_spin_button_get_adjustment(button);
 	if (adj == priv->pos_x)
 		priv->current_area->area->offsetX = value;
 	if (adj == priv->pos_y)
 		priv->current_area->area->offsetY = value;
 	gtk_widget_queue_draw(priv->video_area);
+	return;
 }
 
 void rotate_changed_cb(GtkSpinButton *button, MyMain *self) {
 	GET_PRIV;
 	if (priv->current_area == NULL)
 		return;
-	gdouble value = gtk_spin_button_get_value(button) * -1. * M_PI / 180.;
+	gdouble value=gtk_spin_button_get_value(button);
+	value = value * -1. * M_PI / 180.;
 	cairo_matrix_t rotate;
 	cairo_matrix_init_rotate(&rotate, value);
 	priv->current_area->area->obj_mat.xx = rotate.xx;
@@ -205,6 +210,7 @@ void rotate_changed_cb(GtkSpinButton *button, MyMain *self) {
 	priv->current_area->area->obj_mat.yy = rotate.yy;
 	priv->current_area->area->obj_mat.yx = rotate.yx;
 	gtk_widget_queue_draw(priv->video_area);
+	return;
 }
 
 void scale_changed_cb(GtkSpinButton *button, MyMain *self) {
@@ -255,8 +261,23 @@ gboolean scale_output_cb(GtkSpinButton *button,MyMain *self){
 }
 
 void play_speed_cb(GtkSpinButton *button, MyMain *self){
-g_print("%s\n",__func__);
+	GET_PRIV;
+	gint64 pos;
+	GstEvent *event=NULL;
+	gdouble speed=gtk_spin_button_get_value(button);
+	gst_element_query_position(priv->pline, GST_FORMAT_TIME, &pos);
+	if(speed==0.){
+		gst_element_set_state(priv->pline,GST_STATE_PAUSED);
+		return;
+	}else if(speed>0.){
+		event=gst_event_new_seek(speed,GST_FORMAT_TIME,GST_SEEK_FLAG_FLUSH|GST_SEEK_FLAG_ACCURATE,GST_SEEK_TYPE_SET,pos,GST_SEEK_TYPE_END,0);
+	}else{//speed<0.
+		event=gst_event_new_seek(speed,GST_FORMAT_TIME,GST_SEEK_FLAG_FLUSH|GST_SEEK_FLAG_ACCURATE,GST_SEEK_TYPE_SET,0,GST_SEEK_TYPE_SET,pos);
+	}
+	//gst_element_set_state(priv->pline,GST_STATE_PLAYING);
+	gst_element_send_event(priv->pline,event);
 }
+
 gint play_speed_input_cb (GtkSpinButton *spin_button,
                gdouble       *new_value,
 			   MyMain *self){
@@ -368,6 +389,73 @@ void align_buttom_cb(GtkButton *button,MyMain *self){
 	update_area_info(priv->current_area->area, self);
 }
 
+void volume_changed_cb (GtkScaleButton *button, MyMain *self){
+	GET_PRIV;
+	gdouble v=gtk_adjustment_get_value(priv->volume);
+	g_object_set(priv->playbin,"volume",v,NULL);
+}
+
+void full_screen_cb (GtkButton *button, MyMain *self){
+	GET_PRIV;
+	GdkPixbuf *p=my_video_area_get_pixbuf(priv->video_area);
+	if(p==NULL)return;
+	gint w=gdk_pixbuf_get_width(p);
+	gint h=gdk_pixbuf_get_height(p);
+	GtkAllocation alloc;
+	gtk_widget_get_allocation(priv->video_box,&alloc);
+	gdouble wr=alloc.width/(gdouble)w;
+	gdouble hr=alloc.height/(gdouble)h;
+	gtk_adjustment_set_value(priv->scale,wr<hr?wr:hr);
+}
+
+void play_cb(GtkButton *button,MyMain *self){
+	GET_PRIV;
+	gst_element_set_state(priv->pline,GST_STATE_PLAYING);
+	priv->state=GST_STATE_PLAYING;
+}
+
+void pause_cb(GtkButton *button,MyMain *self){
+	GET_PRIV;
+	gst_element_set_state(priv->pline,GST_STATE_PAUSED);
+	priv->state=GST_STATE_PAUSED;
+}
+
+gboolean progess_changed_cb(GtkScale *scale, GtkScrollType scroll, gdouble value,MyMain *self){
+	GET_PRIV;
+	GstEvent *event;
+	gdouble speed=gtk_adjustment_get_value(priv->play_speed);
+	gint64 pos=value*GST_SECOND;
+	gst_element_set_state(priv->pline,GST_STATE_PLAYING);
+	if(speed>=0.){
+		event=gst_event_new_seek(speed,GST_FORMAT_TIME,GST_SEEK_FLAG_FLUSH|GST_SEEK_FLAG_ACCURATE,GST_SEEK_TYPE_SET,pos,GST_SEEK_TYPE_END,0);
+	}else{//speed<0.
+		event=gst_event_new_seek(speed,GST_FORMAT_TIME,GST_SEEK_FLAG_FLUSH|GST_SEEK_FLAG_ACCURATE,GST_SEEK_TYPE_SET,0,GST_SEEK_TYPE_SET,pos);
+	}
+	gst_element_send_event(priv->pline,event);
+	gst_element_set_state(priv->pline,priv->state);
+	return TRUE;
+}
+
+gboolean message_watch_cb(GstBus * bus, GstMessage * message, MyMain *self){
+	GET_PRIV;
+	gint64 pos,dur;
+	if(message->type==GST_MESSAGE_ELEMENT){
+		GstStructure *s=gst_message_get_structure(message);
+		if(gst_structure_has_field_typed(s, "pixbuf", GDK_TYPE_PIXBUF)){
+			GdkPixbuf *p=NULL;
+			gst_structure_get(s, "pixbuf", GDK_TYPE_PIXBUF,&p,NULL);
+			my_video_area_set_pixbuf(priv->video_area, p);
+			gtk_widget_queue_draw(priv->video_area);
+			g_object_unref(p);
+			gst_element_query_position(priv->pline, GST_FORMAT_TIME, &pos);
+			gst_element_query_duration(priv->pline,GST_FORMAT_TIME,&dur);
+			gtk_adjustment_set_upper(priv->progress,dur/GST_SECOND);
+			gtk_adjustment_set_value(priv->progress,pos/GST_SECOND);
+		};
+	}
+	return G_SOURCE_CONTINUE;
+}
+
 static void my_main_class_init(MyMainClass *klass) {
 	size_t s;
 	gchar *glade;
@@ -389,6 +477,8 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_child_private(klass, MyMain,
 			size_radio_lock);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, area_label);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, scale);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, play_speed);
 
 	gtk_widget_class_bind_template_callback(klass, label_changed_cb);
 	gtk_widget_class_bind_template_callback(klass, pos_changed_cb);
@@ -409,7 +499,11 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_callback(klass, play_speed_cb);
 	gtk_widget_class_bind_template_callback(klass, play_speed_input_cb);
 	gtk_widget_class_bind_template_callback(klass, play_speed_output_cb);
-
+	gtk_widget_class_bind_template_callback(klass, full_screen_cb);
+	gtk_widget_class_bind_template_callback(klass, volume_changed_cb);
+	gtk_widget_class_bind_template_callback(klass, play_cb);
+	gtk_widget_class_bind_template_callback(klass, pause_cb);
+	gtk_widget_class_bind_template_callback(klass, progess_changed_cb);
 }
 
 static void my_main_init(MyMain *self) {
@@ -430,6 +524,20 @@ static void my_main_init(MyMain *self) {
 	g_signal_connect(priv->video_area, "area_rotate", area_rotate, self);
 	my_main_add_area(self, "0", 0, 0, 100, 200);
 	my_main_add_area(self, "1", 100, 200, 100, 200);
+
+	priv->playbin=gst_element_factory_make("playbin3","playbin");
+	priv->video_sink=gst_element_factory_make("gdkpixbufsink","sink");
+	priv->pline=gst_pipeline_new("line");
+	gst_bin_add_many(priv->pline, priv->playbin,NULL);
+	//g_object_set(priv->playbin,"video-sink",priv->video_sink,"uri","file:///home/tom/eclipse-workspace/Spring.mp4",NULL);
+	g_object_set(priv->playbin,"video-sink",priv->video_sink,"uri","file:///home/tom/dwhelper/2020VSINGERLIVE%E6%BC%94%E5%94%B1%E4%BC%9A%E8%AF%A6%E6%83%85%E4%BB%8B%E7%BB%8D-2020VSINGERLIVE%E6%BC%94%E5%94%B1%E4%BC%9A%E5%9C%A8%E7%BA%BF%E8%A7%82%E7%9C%8B-2020VSINGERLIV.mp4",NULL);
+	gst_bus_add_watch(gst_pipeline_get_bus(priv->pline),message_watch_cb,self);
+	gst_element_set_state(priv->pline,GST_STATE_PLAYING);
+	priv->state=GST_STATE_PLAYING;
+}
+
+MyMain *my_main_new(){
+	return g_object_new(MY_TYPE_MAIN,NULL);
 }
 
 void my_main_add_area(MyMain *self, gchar *label, gfloat x, gfloat y, gfloat w,

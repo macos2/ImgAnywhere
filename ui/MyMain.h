@@ -11,7 +11,7 @@
 #include <glib.h>
 #include <glib-object.h>
 #include <gtk/gtk.h>
-
+#include <gst/gst.h>
 #include "MyVideoArea.h"
 G_BEGIN_DECLS
 
@@ -22,6 +22,7 @@ typedef struct _MyMainClass{
   GtkWindowClass parent_class;
 };
 
+MyMain *my_main_new();
 void my_main_add_area(MyMain *self,gchar *label,gfloat x,gfloat y,gfloat w,gfloat h);
 
 G_END_DECLS

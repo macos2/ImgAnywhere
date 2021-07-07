@@ -43,7 +43,6 @@ void imgtool_test(cairo_surface_t *s){
 	img_argb_remap(cairo_image_surface_get_data(color_diff),cairo_image_surface_get_data(color_channel),400,400,&b_channel);
 	cairo_surface_write_to_png(color_channel,"blue.png");
 	//img_edge_detect(cairo_image_surface_get_data(s),cairo_image_surface_get_data(color_diff),400,400,4);
-
 	cairo_surface_t *gray=cairo_image_surface_create(CAIRO_FORMAT_A8,400,400);
 	img_argb_to_gray(cairo_image_surface_get_data(s),cairo_image_surface_get_data(gray),400,400,MEAN_NUM);
 	cairo_surface_write_to_png(gray,"gray.png");
@@ -148,6 +147,7 @@ void image_convert(const char *path){
 
 int main (int argc,char *argv[]){
 	gtk_init(&argc,&argv);
+	gst_init(&argc,&argv);
 	/*
 	GtkWidget *win=gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	MyVideoArea *area=my_video_area_new();
