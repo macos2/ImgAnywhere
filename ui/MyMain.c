@@ -21,13 +21,14 @@ typedef struct {
 	GtkTreeView *modifier_view;
 	GtkPaned *paned;
 	AreaInfo *current_area;
-	GtkToggleButton *size_radio_lock;
-	GtkEntry *area_label;
+	GtkToggleButton *size_radio_lock,*full_screen;
+	GtkEntry *area_label,*open_uri;
 	GHashTable *area_table;
 	gdouble r_w_h;
-	GstPipeline *pline;
-	GstElement *video_sink,*playbin;
+	GstPipeline *pline,*screen_line,*internal_audio_line,*mic_line;
+	GstElement *video_sink,*playbin,*screen_src,*app_sink,*pulsesrc_mic,*pulsesrc_internal;
 	GstState state;
+	GtkDialog *open_uri_dialog;
 } MyMainPrivate;
 
 G_DEFINE_TYPE_WITH_CODE(MyMain, my_main, GTK_TYPE_WINDOW,
@@ -215,6 +216,7 @@ void rotate_changed_cb(GtkSpinButton *button, MyMain *self) {
 
 void scale_changed_cb(GtkSpinButton *button, MyMain *self) {
 	GET_PRIV;
+	//gtk_toggle_button_set_active(priv->full_screen,FALSE);
 	gdouble h_max,w_max;
 	GtkAdjustment *h=gtk_scrolled_window_get_hadjustment(priv->video_box);
 	GtkAdjustment *w=gtk_scrolled_window_get_vadjustment(priv->video_box);
@@ -395,18 +397,7 @@ void volume_changed_cb (GtkScaleButton *button, MyMain *self){
 	g_object_set(priv->playbin,"volume",v,NULL);
 }
 
-void full_screen_cb (GtkButton *button, MyMain *self){
-	GET_PRIV;
-	GdkPixbuf *p=my_video_area_get_pixbuf(priv->video_area);
-	if(p==NULL)return;
-	gint w=gdk_pixbuf_get_width(p);
-	gint h=gdk_pixbuf_get_height(p);
-	GtkAllocation alloc;
-	gtk_widget_get_allocation(priv->video_box,&alloc);
-	gdouble wr=alloc.width/(gdouble)w;
-	gdouble hr=alloc.height/(gdouble)h;
-	gtk_adjustment_set_value(priv->scale,wr<hr?wr:hr);
-}
+
 
 void play_cb(GtkButton *button,MyMain *self){
 	GET_PRIV;
@@ -436,6 +427,75 @@ gboolean progess_changed_cb(GtkScale *scale, GtkScrollType scroll, gdouble value
 	return TRUE;
 }
 
+void open_file_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	GtkFileChooserDialog *dialog=gtk_file_chooser_dialog_new("Open Video File", self, GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_OPEN,GTK_RESPONSE_OK,GTK_STOCK_CANCEL,GTK_RESPONSE_CANCEL,NULL);
+	if(gtk_dialog_run(dialog)==GTK_RESPONSE_OK){
+		gchar *uri=gtk_file_chooser_get_uri(dialog);
+		if(uri!=NULL){
+			gst_element_set_state(priv->pline,GST_STATE_NULL);
+			g_object_set(priv->playbin,"uri",uri,NULL);
+			g_free(uri);
+			gst_element_set_state(priv->pline,priv->state);
+		}
+	}
+	gtk_widget_destroy(dialog);
+}
+
+void open_uri_cb (GtkMenuItem *menuitem,MyMain *self){
+GET_PRIV;
+gchar *uri;
+g_object_get(priv->playbin,"uri",&uri,NULL);
+gtk_entry_set_text(priv->open_uri,uri);
+g_free(uri);
+if(gtk_dialog_run(priv->open_uri_dialog)==GTK_RESPONSE_OK){
+	gst_element_set_state(priv->pline,GST_STATE_NULL);
+	uri=gtk_entry_get_text(priv->open_uri);
+	g_object_set(priv->playbin,"uri",uri,NULL);
+	gst_element_set_state(priv->pline,priv->state);
+}
+gtk_widget_hide(priv->open_uri_dialog);
+}
+
+void open_screen_cb (GtkMenuItem *menuitem,MyMain *self){
+GET_PRIV;
+g_print("open screen");
+
+}
+
+void add_area_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	my_main_add_area(self, NULL, 100, 112, 100, 100);
+}
+
+void remove_area_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	if(priv->current_area!=NULL){
+		my_main_remove_area(self, priv->current_area->area);
+		priv->current_area=NULL;
+	}
+}
+
+void full_screen ( MyMain *self){
+	GET_PRIV;
+	GdkPixbuf *p=my_video_area_get_pixbuf(priv->video_area);
+	if(p==NULL)return;
+	gint w=gdk_pixbuf_get_width(p);
+	gint h=gdk_pixbuf_get_height(p);
+	GtkAllocation alloc;
+	gtk_widget_get_allocation(priv->video_box,&alloc);
+	gdouble wr=alloc.width/(gdouble)w;
+	gdouble hr=alloc.height/(gdouble)h;
+	gtk_adjustment_set_value(priv->scale,wr<hr?wr:hr);
+}
+
+void full_screen_toggled_cb(GtkToggleButton *togglebutton, MyMain *self){
+	if(gtk_cell_renderer_toggle_get_active(togglebutton)){
+		full_screen(self);
+	}
+}
+
+
 gboolean message_watch_cb(GstBus * bus, GstMessage * message, MyMain *self){
 	GET_PRIV;
 	gint64 pos,dur;
@@ -451,8 +511,22 @@ gboolean message_watch_cb(GstBus * bus, GstMessage * message, MyMain *self){
 			gst_element_query_duration(priv->pline,GST_FORMAT_TIME,&dur);
 			gtk_adjustment_set_upper(priv->progress,dur/GST_SECOND);
 			gtk_adjustment_set_value(priv->progress,pos/GST_SECOND);
+			if(gtk_toggle_button_get_active(priv->full_screen)){
+				full_screen(self);
+			}
 		};
 	}
+//	GstPad *pad=gst_element_get_static_pad(priv->video_sink,"sink");
+//	GstCaps *caps=gst_pad_query_caps(pad,NULL);
+//	if(caps==NULL){
+//		g_object_unref(pad);
+//		return G_SOURCE_CONTINUE;
+//	}
+//	gchar *s=gst_caps_to_string(caps);
+//	g_print("%s\n",s);
+//	g_free(s);
+//	gst_caps_unref(caps);
+//	g_object_unref(pad);
 	return G_SOURCE_CONTINUE;
 }
 
@@ -479,6 +553,10 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_child_private(klass, MyMain, area_label);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, scale);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, play_speed);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, full_screen);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, open_uri_dialog);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, open_uri);
+
 
 	gtk_widget_class_bind_template_callback(klass, label_changed_cb);
 	gtk_widget_class_bind_template_callback(klass, pos_changed_cb);
@@ -499,11 +577,18 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_callback(klass, play_speed_cb);
 	gtk_widget_class_bind_template_callback(klass, play_speed_input_cb);
 	gtk_widget_class_bind_template_callback(klass, play_speed_output_cb);
-	gtk_widget_class_bind_template_callback(klass, full_screen_cb);
 	gtk_widget_class_bind_template_callback(klass, volume_changed_cb);
 	gtk_widget_class_bind_template_callback(klass, play_cb);
 	gtk_widget_class_bind_template_callback(klass, pause_cb);
 	gtk_widget_class_bind_template_callback(klass, progess_changed_cb);
+
+	gtk_widget_class_bind_template_callback(klass, 	remove_area_cb);
+	gtk_widget_class_bind_template_callback(klass, 	add_area_cb);
+	gtk_widget_class_bind_template_callback(klass, 	open_file_cb);
+	gtk_widget_class_bind_template_callback(klass, 	open_uri_cb);
+	gtk_widget_class_bind_template_callback(klass, 	open_screen_cb);
+	gtk_widget_class_bind_template_callback(klass, 	full_screen_toggled_cb);
+
 }
 
 static void my_main_init(MyMain *self) {
@@ -525,7 +610,7 @@ static void my_main_init(MyMain *self) {
 	my_main_add_area(self, "0", 0, 0, 100, 200);
 	my_main_add_area(self, "1", 100, 200, 100, 200);
 
-	priv->playbin=gst_element_factory_make("playbin3","playbin");
+	priv->playbin=gst_element_factory_make("playbin","playbin");
 	priv->video_sink=gst_element_factory_make("gdkpixbufsink","sink");
 	priv->pline=gst_pipeline_new("line");
 	gst_bin_add_many(priv->pline, priv->playbin,NULL);
@@ -534,6 +619,14 @@ static void my_main_init(MyMain *self) {
 	gst_bus_add_watch(gst_pipeline_get_bus(priv->pline),message_watch_cb,self);
 	gst_element_set_state(priv->pline,GST_STATE_PLAYING);
 	priv->state=GST_STATE_PLAYING;
+
+
+	/*
+	 * gst-launch-1.0 matroskamux name=m ! filesink location="test.mkv"   ximagesrc ! videoconvert ! vaapih264enc ! queue ! m.video_0  pulsesrc device="alsa_output.pci-0000_00_1b.0.analog-stereo.monitor" ! audioconvert ! vorbisenc ! queue ! m.audio_0
+	 */
+
+//	priv->screen_line=gst_parse_launch_full("ximagesrc name=src ! autovideoconvert ! gdkpixbufsink name=sink", context, flags, error);
+//	priv->
 }
 
 MyMain *my_main_new(){
@@ -549,4 +642,19 @@ void my_main_add_area(MyMain *self, gchar *label, gfloat x, gfloat y, gfloat w,
 	info->pixbuf = NULL;
 	info->process_list = create_process_list();
 	g_hash_table_insert(priv->area_table, info->area, info);
+}
+
+void my_main_remove_area(MyMain *self,VideoBoxArea *area){
+	GET_PRIV;
+	AreaInfo *info=NULL;
+	GtkListStore *treestore=gtk_tree_view_get_model(priv->modifier_view);
+	info=g_hash_table_lookup(priv->area_table,area);
+	if(info!=NULL){
+		g_hash_table_remove(priv->area_table,area);
+		my_video_area_remove_area(priv->video_area, area->label);
+		g_object_unref(info->pixbuf);
+		if(treestore==info->process_list)gtk_tree_view_set_model(priv->modifier_view,NULL);
+		g_object_unref(info->process_list);
+		g_free(info);
+	}
 }

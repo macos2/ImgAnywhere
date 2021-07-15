@@ -1,9 +1,9 @@
-OPT=$(shell pkg-config --libs --cflags gtk+-3.0 gstreamer-1.0 ) -lm -w -g
+OPT=$(shell pkg-config --libs --cflags gtk+-3.0 gstreamer-1.0 ) -lm -w -g -no-pie
 
-all:imganywhere.exe
+all:imganywhere
 
-imganywhere.exe:*.c ui/*.c
+imganywhere:*.c ui/*.c
 	gcc $^ -o $@ $(OPT)
 
 clean:
-	-rm *.png *.bin imganywhere.exe
+	-rm *.png *.bin imganywhere

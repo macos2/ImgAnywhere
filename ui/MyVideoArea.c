@@ -161,7 +161,7 @@ gboolean my_video_area_draw_area (cairo_t *cr, MyVideoArea *self) {
     mouseX = priv->mouseX, mouseY = priv->mouseY;
     to_area_coodinate (cr, priv->pre_sel_area, &mouseX, &mouseY,self);
     cairo_set_source_rgba (cr, 0.2, 0.2, 1., 1.);
-    if (point_distance (0, 0, mouseX, mouseY) < 4.) {
+    if (point_distance (0, 0, mouseX, mouseY) < 6.) {
       priv->pre_point = FIX_LEFT_TOP;
       buf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
 				      "view-refresh-symbolic", 16,
@@ -170,7 +170,7 @@ gboolean my_video_area_draw_area (cairo_t *cr, MyVideoArea *self) {
       cairo_paint (cr);
       g_object_unref (buf);
     }
-    else if (point_distance (0, area->h*priv->scale, mouseX, mouseY) < 4.) {
+    else if (point_distance (0, area->h*priv->scale, mouseX, mouseY) < 6.) {
       priv->pre_point = FIX_LEFT_BOTTOM;
       buf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
 				      "view-refresh-symbolic", 16,
@@ -179,7 +179,7 @@ gboolean my_video_area_draw_area (cairo_t *cr, MyVideoArea *self) {
       cairo_paint (cr);
       g_object_unref (buf);
     }
-    else if (point_distance (area->w*priv->scale, 0, mouseX, mouseY) < 4.) {
+    else if (point_distance (area->w*priv->scale, 0, mouseX, mouseY) < 6.) {
       priv->pre_point = FIX_RIGHT_TOP;
       buf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
 				      "view-refresh-symbolic", 16,
@@ -188,7 +188,7 @@ gboolean my_video_area_draw_area (cairo_t *cr, MyVideoArea *self) {
       cairo_paint (cr);
       g_object_unref (buf);
     }
-    else if (point_distance (area->w*priv->scale, area->h*priv->scale, mouseX, mouseY) < 4.) {
+    else if (point_distance (area->w*priv->scale, area->h*priv->scale, mouseX, mouseY) < 6.) {
       priv->pre_point = FIX_RIGHT_BOTTOM;
       buf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
 				      "view-fullscreen-symbolic", 16,
@@ -197,7 +197,7 @@ gboolean my_video_area_draw_area (cairo_t *cr, MyVideoArea *self) {
       cairo_paint (cr);
       g_object_unref (buf);
     }
-    else if (point_distance (area->w*priv->scale / 2., area->h*priv->scale / 2., mouseX, mouseY) < 4.) {
+    else if (point_distance (area->w*priv->scale / 2., area->h*priv->scale / 2., mouseX, mouseY) < 6.) {
       priv->pre_point = FIX_CENTRE;
       buf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
 				      "view-refresh-symbolic", 16,

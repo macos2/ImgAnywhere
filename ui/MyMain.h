@@ -24,6 +24,6 @@ typedef struct _MyMainClass{
 
 MyMain *my_main_new();
 void my_main_add_area(MyMain *self,gchar *label,gfloat x,gfloat y,gfloat w,gfloat h);
-
+void my_main_remove_area(MyMain *self,VideoBoxArea *area);
 G_END_DECLS
 #endif /* UI_MYMAIN_H_ */
