@@ -36,7 +36,6 @@ gdouble point_distance (gdouble x, gdouble y, gdouble x0, gdouble y0) {
   return sqrt (d);
 }
 
-/* overridable methods */
 void to_area_coodinate (cairo_t *cr, VideoBoxArea *area, gdouble *mouseX,
 			gdouble *mouseY,MyVideoArea *self) {
   cairo_matrix_t a,b, res;
@@ -56,6 +55,17 @@ void to_area_coodinate (cairo_t *cr, VideoBoxArea *area, gdouble *mouseX,
   cairo_matrix_translate (&res, area->w*priv->scale / (-2.), area->h*priv->scale / (-2.));
   cairo_matrix_invert (&res);
   cairo_matrix_transform_point (&res, mouseX, mouseY);
+}
+
+void to_area_coodinate_not_scale (cairo_t *cr, VideoBoxArea *area) {
+  cairo_matrix_t a,b, res;
+  GtkAllocation alloc;
+  //matrix multiply
+  cairo_translate (cr, area->offsetX, area->offsetY);
+  cairo_get_matrix (cr, &a);
+  cairo_matrix_multiply (&res, &area->obj_mat, &a);
+  cairo_matrix_translate (&res, area->w / (-2.), area->h / (-2.));
+  cairo_set_matrix (cr, &res);
 }
 
 void draw_area (cairo_t *cr, VideoBoxArea *area,gdouble scale,gdouble r, gdouble g,
@@ -515,6 +525,7 @@ void my_video_area_remove_area (MyVideoArea *self, gchar *label) {
   while(l!=NULL){
     area=l->data;
     if(g_strcmp0(label, area->label)==0){
+      if(priv->sel_area==area)priv->sel_area=NULL;
       priv->area_list=g_list_remove(priv->area_list, area);
       g_free (area->describe);
       g_free (area->label);
@@ -651,21 +662,38 @@ gdouble my_video_area_get_scale(MyVideoArea *self){
 
 cairo_surface_t* my_video_area_get_area_content_by_name (MyVideoArea *self,
 							 gchar *label) {
-  cairo_matrix_t mat;
   MyVideoAreaPrivate *priv = my_video_area_get_instance_private (self);
   VideoBoxArea *area = my_video_area_get_area (self, label);
   if (area == NULL) return NULL;
   cairo_surface_t *surf = cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
 						      area->w, area->h);
   cairo_t *cr = cairo_create (surf);
-  cairo_save (cr);
-  to_area_coodinate (cr, area, NULL, NULL,self);
-  cairo_get_matrix (cr, &mat);
-  cairo_matrix_invert (&mat);
-  cairo_restore (cr);
-  cairo_set_matrix (cr, &mat);
+  my_video_area_to_area_coordinate(cr,area);
   gdk_cairo_set_source_pixbuf (cr, priv->pixbuf, 0., 0.);
   cairo_paint (cr);
   cairo_destroy (cr);
   return surf;
+}
+
+cairo_surface_t *my_video_area_get_area_content(MyVideoArea *self,VideoBoxArea *area){
+	  MyVideoAreaPrivate *priv = my_video_area_get_instance_private (self);
+	  if (area == NULL) return NULL;
+	  cairo_surface_t *surf = cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
+							      area->w, area->h);
+	  cairo_t *cr = cairo_create (surf);
+	  my_video_area_to_area_coordinate(cr,area);
+	  gdk_cairo_set_source_pixbuf (cr, priv->pixbuf, 0., 0.);
+	  cairo_paint (cr);
+	  cairo_destroy (cr);
+	  return surf;
+}
+
+void my_video_area_to_area_coordinate(cairo_t *cr,VideoBoxArea *area){
+	  cairo_matrix_t mat;
+	  cairo_save (cr);
+	  to_area_coodinate_not_scale (cr, area);
+	  cairo_get_matrix (cr, &mat);
+	  cairo_matrix_invert (&mat);
+	  cairo_restore (cr);
+	  cairo_set_matrix (cr, &mat);
 }

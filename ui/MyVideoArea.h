@@ -52,4 +52,6 @@ const GdkPixbuf *my_video_area_get_pixbuf(MyVideoArea *self);
 void my_video_area_set_scale(MyVideoArea *self,gdouble scale);
 gdouble my_video_area_get_scale(MyVideoArea *self);
 cairo_surface_t *my_video_area_get_area_content_by_name(MyVideoArea *self,gchar *name);
+cairo_surface_t *my_video_area_get_area_content(MyVideoArea *self,VideoBoxArea *area);
+void my_video_area_to_area_coordinate(cairo_t *cr,VideoBoxArea *area);
 #endif /* UI_MYVIDEOAREA_H_ */

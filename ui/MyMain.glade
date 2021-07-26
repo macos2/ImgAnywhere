@@ -309,7 +309,7 @@ macos2@gitee.com</property>
   </object>
   <object class="GtkAdjustment" id="volume">
     <property name="upper">1</property>
-    <property name="value">1</property>
+    <property name="value">0.59999999999999998</property>
     <property name="step_increment">0.10000000000000001</property>
     <property name="page_increment">0.10000000000000001</property>
   </object>
@@ -579,7 +579,7 @@ macos2@gitee.com</property>
                         <property name="receives_default">True</property>
                         <property name="relief">none</property>
                         <property name="orientation">vertical</property>
-                        <property name="value">1</property>
+                        <property name="value">0.59999999999999998</property>
                         <property name="adjustment">volume</property>
                         <property name="icons">audio-volume-muted-symbolic
 audio-volume-high-symbolic
@@ -733,17 +733,9 @@ audio-volume-medium-symbolic</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkFrame">
+                          <object class="GtkExpander">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="margin_left">5</property>
-                            <property name="margin_right">5</property>
-                            <property name="margin_start">5</property>
-                            <property name="margin_end">5</property>
-                            <property name="margin_top">5</property>
-                            <property name="margin_bottom">5</property>
-                            <property name="label_xalign">0</property>
-                            <property name="shadow_type">in</property>
+                            <property name="can_focus">True</property>
                             <child>
                               <object class="GtkBox">
                                 <property name="visible">True</property>
@@ -875,17 +867,9 @@ audio-volume-medium-symbolic</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkFrame">
+                          <object class="GtkExpander">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="margin_left">5</property>
-                            <property name="margin_right">5</property>
-                            <property name="margin_start">5</property>
-                            <property name="margin_end">5</property>
-                            <property name="margin_top">5</property>
-                            <property name="margin_bottom">5</property>
-                            <property name="label_xalign">0</property>
-                            <property name="shadow_type">in</property>
+                            <property name="can_focus">True</property>
                             <child>
                               <object class="GtkBox">
                                 <property name="visible">True</property>
@@ -1065,17 +1049,9 @@ audio-volume-medium-symbolic</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkFrame">
+                          <object class="GtkExpander">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="margin_left">5</property>
-                            <property name="margin_right">5</property>
-                            <property name="margin_start">5</property>
-                            <property name="margin_end">5</property>
-                            <property name="margin_top">5</property>
-                            <property name="margin_bottom">5</property>
-                            <property name="label_xalign">0</property>
-                            <property name="shadow_type">in</property>
+                            <property name="can_focus">True</property>
                             <child>
                               <object class="GtkBox">
                                 <property name="visible">True</property>
@@ -1119,10 +1095,93 @@ audio-volume-medium-symbolic</property>
                           </packing>
                         </child>
                         <child>
+                          <object class="GtkExpander">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <child>
+                              <object class="GtkDrawingArea" id="preview_area">
+                                <property name="height_request">128</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <signal name="draw" handler="preview_area_draw_cb" object="MyMain" swapped="no"/>
+                              </object>
+                            </child>
+                            <child type="label">
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">PrewView 预览</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">4</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkTreeView" id="modifier_view">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="search_column">1</property>
+                            <property name="enable_grid_lines">horizontal</property>
+                            <child internal-child="selection">
+                              <object class="GtkTreeSelection"/>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn">
+                                <property name="sizing">autosize</property>
+                                <property name="title" translatable="yes">Id</property>
+                                <property name="clickable">True</property>
+                                <property name="reorderable">True</property>
+                                <property name="sort_column_id">0</property>
+                                <child>
+                                  <object class="GtkCellRendererText"/>
+                                  <attributes>
+                                    <attribute name="text">0</attribute>
+                                  </attributes>
+                                </child>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn">
+                                <property name="sizing">autosize</property>
+                                <property name="title" translatable="yes">Name</property>
+                                <property name="clickable">True</property>
+                                <property name="sort_column_id">1</property>
+                                <child>
+                                  <object class="GtkCellRendererText"/>
+                                  <attributes>
+                                    <attribute name="text">1</attribute>
+                                  </attributes>
+                                </child>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn">
+                                <property name="sizing">autosize</property>
+                                <property name="title" translatable="yes">Preview</property>
+                                <child>
+                                  <object class="GtkCellRendererPixbuf"/>
+                                  <attributes>
+                                    <attribute name="pixbuf">2</attribute>
+                                  </attributes>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="pack_type">end</property>
+                            <property name="position">4</property>
+                          </packing>
+                        </child>
+                        <child>
                           <object class="GtkButtonBox">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="homogeneous">True</property>
                             <property name="layout_style">start</property>
                             <child>
                               <object class="GtkButton">
@@ -1190,66 +1249,7 @@ audio-volume-medium-symbolic</property>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">4</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkTreeView" id="modifier_view">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="search_column">1</property>
-                            <property name="enable_grid_lines">horizontal</property>
-                            <child internal-child="selection">
-                              <object class="GtkTreeSelection"/>
-                            </child>
-                            <child>
-                              <object class="GtkTreeViewColumn">
-                                <property name="resizable">True</property>
-                                <property name="sizing">autosize</property>
-                                <property name="title" translatable="yes">Id</property>
-                                <property name="reorderable">True</property>
-                                <property name="sort_column_id">0</property>
-                                <child>
-                                  <object class="GtkCellRendererText"/>
-                                  <attributes>
-                                    <attribute name="text">0</attribute>
-                                  </attributes>
-                                </child>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkTreeViewColumn">
-                                <property name="resizable">True</property>
-                                <property name="sizing">autosize</property>
-                                <property name="title" translatable="yes">Name</property>
-                                <property name="sort_column_id">1</property>
-                                <child>
-                                  <object class="GtkCellRendererText"/>
-                                  <attributes>
-                                    <attribute name="text">1</attribute>
-                                  </attributes>
-                                </child>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkTreeViewColumn">
-                                <property name="resizable">True</property>
-                                <property name="sizing">autosize</property>
-                                <property name="title" translatable="yes">Preview</property>
-                                <child>
-                                  <object class="GtkCellRendererPixbuf"/>
-                                  <attributes>
-                                    <attribute name="pixbuf">2</attribute>
-                                  </attributes>
-                                </child>
-                              </object>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="pack_type">end</property>
-                            <property name="position">5</property>
+                            <property name="position">6</property>
                           </packing>
                         </child>
                       </object>
