@@ -13,7 +13,8 @@
 #include <gtk/gtk.h>
 #include <gst/gst.h>
 #include "MyVideoArea.h"
-#include "MyVideoAreaFilter.h"
+#include "MyLogo.h"
+//#include "MyVideoAreaFilter.h"
 #include "MyAreaFilterPad.h"
 G_BEGIN_DECLS
 

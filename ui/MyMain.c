@@ -27,8 +27,7 @@ typedef struct {
 	GHashTable *area_table;
 	gdouble r_w_h;
 	GstPipeline *pline, *screen_line, *internal_audio_line, *mic_line;
-	GstElement *video_sink, *playbin, *screen_src, *app_sink, *pulsesrc_mic,
-			*pulsesrc_internal;
+	GstElement *video_sink, *playbin,*tee_sink,*area_filter;
 	GstState state;
 	GtkDialog *open_uri_dialog;
 	GtkDrawingArea *preview_area;
@@ -435,7 +434,9 @@ void play_cb(GtkButton *button, MyMain *self) {
 
 void pause_cb(GtkButton *button, MyMain *self) {
 	GET_PRIV;
-	gst_element_set_state(priv->pline, GST_STATE_PAUSED);
+//	gst_element_set_state(priv->pline, GST_STATE_PAUSED);
+//	priv->state = GST_STATE_PAUSED;
+	gst_element_set_state(priv->pline, GST_STATE_NULL);
 	priv->state = GST_STATE_PAUSED;
 }
 
@@ -675,20 +676,47 @@ static void my_main_init(MyMain *self) {
 	g_signal_connect(priv->video_area, "area_move", area_move, self);
 	g_signal_connect(priv->video_area, "area_resize", area_resize, self);
 	g_signal_connect(priv->video_area, "area_rotate", area_rotate, self);
-	my_main_add_area(self, "0", 0, 0, 100, 200);
-	my_main_add_area(self, "1", 100, 200, 100, 200);
+	//my_main_add_area(self, "0", 0, 0, 100, 200);
+
+
+
+	GstBin *bin=gst_bin_new("tee");
+	priv->tee_sink=bin;
+	GstElement *tee=gst_element_factory_make("tee","tee");
+	gst_bin_add(bin,tee);
+	GstPad *src_pad,*sink_pad;
+	sink_pad=gst_element_get_static_pad(tee,"sink");
+	gst_element_add_pad(bin,gst_ghost_pad_new("sink",sink_pad));
+	gst_object_unref(sink_pad);
+
+
+	priv->video_sink = gst_element_factory_make("gdkpixbufsink", "sink");
+	gst_bin_add(bin,priv->video_sink);
+	src_pad=gst_element_get_request_pad(tee,"src_0");
+	sink_pad=gst_element_get_static_pad(priv->video_sink,"sink");
+	gst_pad_link(src_pad,sink_pad);
+	gst_object_unref(src_pad);
+	gst_object_unref(sink_pad);
+
+//	priv->area_filter=g_object_new(MY_TYPE_VIDEO_AREA_FILTER,NULL);//gst_element_factory_make("videoareafilter","videoareafilter");
+//	gst_bin_add(bin,priv->area_filter);
+//	sink_pad=gst_element_get_static_pad(priv->area_filter,"sink");
+//	src_pad=gst_element_get_request_pad(tee,"src_1");
+//	gst_pad_link(src_pad,sink_pad);
+//	gst_object_unref(src_pad);
+//	gst_object_unref(sink_pad);
 
 	priv->playbin = gst_element_factory_make("playbin", "playbin");
-	priv->video_sink = gst_element_factory_make("gdkpixbufsink", "sink");
 	priv->pline = gst_pipeline_new("line");
 	gst_bin_add_many(priv->pline, priv->playbin, NULL);
 	//g_object_set(priv->playbin,"video-sink",priv->video_sink,"uri","file:///home/tom/eclipse-workspace/Spring.mp4",NULL);
-	g_object_set(priv->playbin, "video-sink", priv->video_sink, "uri",
+	g_object_set(priv->playbin, "video-sink", priv->tee_sink, "uri",
 			"file:///home/tom/dwhelper/2020VSINGERLIVE%E6%BC%94%E5%94%B1%E4%BC%9A%E8%AF%A6%E6%83%85%E4%BB%8B%E7%BB%8D-2020VSINGERLIVE%E6%BC%94%E5%94%B1%E4%BC%9A%E5%9C%A8%E7%BA%BF%E8%A7%82%E7%9C%8B-2020VSINGERLIV.mp4",
 			"volume",gtk_adjustment_get_value(priv->volume),
 			NULL);
 	gst_bus_add_watch(gst_pipeline_get_bus(priv->pline), message_watch_cb,
 			self);
+	my_main_add_area(self, "1", 100, 200, 100, 200);
 	gst_element_set_state(priv->pline, GST_STATE_PLAYING);
 	priv->state = GST_STATE_PLAYING;
 }
@@ -706,6 +734,21 @@ void my_main_add_area(MyMain *self, gchar *label, gfloat x, gfloat y, gfloat w,
 	info->surf = NULL;
 	info->process_list = create_process_list();
 	g_hash_table_insert(priv->area_table, info->area, info);
+
+//	static int i=0;
+//	gchar *name=g_strdup_printf("src_%d",i);
+//	MyAreaFilterPad *src_pad=gst_element_get_request_pad(priv->area_filter,name);
+//	g_free(name);
+//	name=g_strdup_printf("gtksink_%d",i);
+//	GstElement *sink=gst_element_factory_make("gtksink",name);
+//	g_free(name);
+//	i++;
+//	gst_bin_add(priv->tee_sink,sink);
+//	g_object_set(src_pad,"boxarea",info->area,NULL);
+//	GstPad *sink_pad=gst_element_get_static_pad(sink,"sink");
+//	gst_pad_link(src_pad,sink_pad);
+//	gst_object_unref(src_pad);
+//	gst_object_unref(sink_pad);
 }
 
 void my_main_remove_area(MyMain *self, VideoBoxArea *area) {

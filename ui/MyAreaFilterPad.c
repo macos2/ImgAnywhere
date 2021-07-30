@@ -9,7 +9,7 @@
 #include "MyAreaFilterPad.h"
 
 enum {
-	Prob_VideoBoxArea,
+	Prob_VideoBoxArea = 1,
 	N_Prob,
 }PadProb;
 

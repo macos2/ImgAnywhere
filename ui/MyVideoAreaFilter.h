@@ -14,6 +14,7 @@
 #include "MyVideoArea.h"
 
 G_BEGIN_DECLS
+#define MY_TYPE_VIDEO_AREA_FILTER (my_video_area_filter_get_type())
 G_DECLARE_FINAL_TYPE(MyVideoAreaFilter,my_video_area_filter,MY,VIDEO_AREA_FILTER,GstElement);
 
 typedef struct _MyVideoAreaFilter{
@@ -23,6 +24,7 @@ typedef struct _MyVideoAreaFilter{
 };
 
 //GST_ELEMENT_REGISTER_DECLARE(my_video_area_filter);
+
 G_END_DECLS
 
 

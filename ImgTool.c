@@ -41,22 +41,22 @@ void img_argb_to_gray(uint8_t *argb_img, uint8_t *gray_img,
  * B=BR*R+BG*G+BB*B+BA*A+BC
  */
 void img_argb_remap(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,RemapWeight *weight){
-	uint8_t *s=in,*r,*g,*b,*a;
+	uint8_t *s=in,r,g,b,a;
 	uint8_t *d=out;
 	uint32_t i=w*h;
 	uint16_t temp;
 while(i){
-	a=&s[3];
-	r=&s[2];
-	g=&s[1];
-	b=&s[0];
-	temp=weight->AA**a+weight->AB**b+weight->AG**g+weight->AR**r+weight->AC;
+	a=s[3];
+	r=s[2];
+	g=s[1];
+	b=s[0];
+	temp=weight->AA*a+weight->AB*b+weight->AG*g+weight->AR*r+weight->AC;
 	d[3]=temp>0xff?0xff:temp;
-	temp=weight->RA**a+weight->RB**b+weight->RG**g+weight->RR**r+weight->RC;
+	temp=weight->RA*a+weight->RB*b+weight->RG*g+weight->RR*r+weight->RC;
 	d[2]=temp>0xff?0xff:temp;
-	temp=weight->GA**a+weight->GB**b+weight->GG**g+weight->GR**r+weight->GC;
+	temp=weight->GA*a+weight->GB*b+weight->GG*g+weight->GR*r+weight->GC;
 	d[1]=temp>0xff?0xff:temp;
-	temp=weight->BA**a+weight->BB**b+weight->BG**g+weight->BR**r+weight->BC;
+	temp=weight->BA*a+weight->BB*b+weight->BG*g+weight->BR*r+weight->BC;
 	d[0]=temp>0xff?0xff:temp;
 	s+=4;
 	d+=4;
