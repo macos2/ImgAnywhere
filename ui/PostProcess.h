@@ -10,6 +10,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
+#include <cairo.h>
 #include <gtk/gtk.h>
 #include "../ImgFormat.h"
 #include "../ImgTool.h"
@@ -31,8 +32,11 @@ typedef enum {
 } PostType;
 
 typedef struct {
+	guint32 id;
+	gchar *name;
 	PostType post_type;
 	guint32 w, h;
+	guint64 out_size;
 	gboolean can_display;
 	gpointer next_post;
 } PostCommon;
@@ -54,7 +58,7 @@ typedef struct {
 
 typedef struct {
 	PostCommon com;
-	uint8_t rank, pixal_size,radio;
+	uint8_t rank,radio;
 } PostDiffuse;
 
 typedef struct {
@@ -89,7 +93,7 @@ typedef struct {
 	gboolean asm_source;
 	gboolean head_output;
 	gboolean over_write;
-	GIOStream *file;
+	GFile *file;
 } OutFile;
 
 typedef struct {
@@ -99,21 +103,21 @@ typedef struct {
 	guint32 index;
 } OutImgFile;
 
-typedef gboolean (*PostProcessFunc)(PostCommon *post,gpointer data, gpointer *out);
+typedef gboolean (*PostProcessFunc)(PostCommon *post,guint8 *data, gpointer *out);
 PostProcessFunc get_post_process_func(PostCommon *post);
 void append_post_process(PostCommon *post,PostCommon *append_post);
 PostCommon *next_post_process(PostCommon *post);
+gboolean post_process(PostCommon *post,guint8 *data,gpointer *out);
 
-gboolean post_process(PostCommon *post,gpointer data,gpointer *out);
-gboolean post_gray(PostGray *gray,gpointer data,gpointer *out);
-gboolean post_rgb_fmt(PostRGBFmt *rgbfmt,gpointer data,gpointer *out);
-gboolean post_argb_remap(PostARGBRemap *argbremap,gpointer data,gpointer *out);
-gboolean post_diffuse(PostDiffuse *diffuse,gpointer data,gpointer *out);
-gboolean post_transparent(PostTransparent *transparent,gpointer data,gpointer *out);
-gboolean post_bitmap(PostBitmap *bitmap,gpointer data,gpointer *out);
-gboolean out_windows(OutWindow *window,gpointer data,gpointer *out);
-gboolean out_file(OutFile *file,gpointer data,gpointer *out);
-gboolean out_img_file(OutImgFile *img,gpointer data,gpointer *out);
+gboolean post_gray(PostGray *gray,cairo_surface_t *surf,gpointer *out);
+gboolean post_rgb_fmt(PostRGBFmt *rgbfmt,cairo_surface_t *surf,gpointer *out);
+gboolean post_argb_remap(PostARGBRemap *argbremap,cairo_surface_t *surf,gpointer *out);
+gboolean post_diffuse(PostDiffuse *diffuse,cairo_surface_t *surf,gpointer *out);
+gboolean post_transparent(PostTransparent *transparent,cairo_surface_t *surf,gpointer *out);
+gboolean post_bitmap(PostBitmap *bitmap,cairo_surface_t *surf,gpointer *out);
+gboolean out_windows(OutWindow *window,cairo_surface_t *surf,gpointer *out);
+gboolean out_file(OutFile *file,guint8 *data,gpointer *out);
+gboolean out_img_file(OutImgFile *img,cairo_surface_t *surf,gpointer *out);
 G_END_DECLS
 
 #endif /* UI_POSTPROCESS_H_ */
