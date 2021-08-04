@@ -53,6 +53,16 @@ macos2@gitee.com</property>
       </object>
     </child>
   </object>
+  <object class="GtkImage" id="bw">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="resource">/my/bw.png</property>
+  </object>
+  <object class="GtkImage" id="diff">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="resource">/my/diff.png</property>
+  </object>
   <object class="GtkDialog" id="donate_dialog">
     <property name="can_focus">False</property>
     <property name="type_hint">dialog</property>
@@ -131,6 +141,17 @@ macos2@gitee.com</property>
       </object>
     </child>
   </object>
+  <object class="GtkImage" id="file">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="resource">/my/file.png</property>
+    <property name="icon_size">3</property>
+  </object>
+  <object class="GtkImage" id="gray">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="resource">/my/gray.png</property>
+  </object>
   <object class="GtkImage" id="image_about">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -150,6 +171,12 @@ macos2@gitee.com</property>
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="icon_name">emblem-favorite-symbolic</property>
+  </object>
+  <object class="GtkImage" id="image_file">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="resource">/my/image_file.png</property>
+    <property name="icon_size">3</property>
   </object>
   <object class="GtkImage" id="image_open">
     <property name="visible">True</property>
@@ -283,6 +310,22 @@ macos2@gitee.com</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
+  <object class="GtkImage" id="remap">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="resource">/my/remap.png</property>
+  </object>
+  <object class="GtkImage" id="resize">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="resource">/my/resize.png</property>
+    <property name="icon_size">2</property>
+  </object>
+  <object class="GtkImage" id="rgbfmt">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="resource">/my/rgbfmt.png</property>
+  </object>
   <object class="GtkAdjustment" id="rotate">
     <property name="upper">360</property>
     <property name="step_increment">1</property>
@@ -295,6 +338,11 @@ macos2@gitee.com</property>
     <property name="step_increment">0.10000000000000001</property>
     <property name="page_increment">1</property>
   </object>
+  <object class="GtkImage" id="scan">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="resource">/my/scan.png</property>
+  </object>
   <object class="GtkAdjustment" id="size_h">
     <property name="lower">1</property>
     <property name="upper">100000</property>
@@ -306,6 +354,11 @@ macos2@gitee.com</property>
     <property name="upper">100000</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
+  </object>
+  <object class="GtkImage" id="transparent">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="resource">/my/transparent.png</property>
   </object>
   <object class="GtkAdjustment" id="volume">
     <property name="upper">1</property>
@@ -1100,7 +1153,7 @@ audio-volume-medium-symbolic</property>
                             <property name="can_focus">True</property>
                             <child>
                               <object class="GtkDrawingArea" id="preview_area">
-                                <property name="height_request">128</property>
+                                <property name="height_request">256</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <signal name="draw" handler="preview_area_draw_cb" object="MyMain" swapped="no"/>
@@ -1127,14 +1180,18 @@ audio-volume-medium-symbolic</property>
                             <property name="search_column">1</property>
                             <property name="enable_grid_lines">horizontal</property>
                             <child internal-child="selection">
-                              <object class="GtkTreeSelection"/>
+                              <object class="GtkTreeSelection">
+                                <property name="mode">multiple</property>
+                              </object>
                             </child>
                             <child>
                               <object class="GtkTreeViewColumn">
+                                <property name="resizable">True</property>
                                 <property name="sizing">autosize</property>
                                 <property name="title" translatable="yes">Id</property>
                                 <property name="clickable">True</property>
                                 <property name="reorderable">True</property>
+                                <property name="sort_indicator">True</property>
                                 <property name="sort_column_id">0</property>
                                 <child>
                                   <object class="GtkCellRendererText"/>
@@ -1146,12 +1203,29 @@ audio-volume-medium-symbolic</property>
                             </child>
                             <child>
                               <object class="GtkTreeViewColumn">
+                                <property name="title" translatable="yes">Type</property>
+                                <child>
+                                  <object class="GtkCellRendererPixbuf"/>
+                                  <attributes>
+                                    <attribute name="pixbuf">3</attribute>
+                                  </attributes>
+                                </child>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn">
+                                <property name="resizable">True</property>
                                 <property name="sizing">autosize</property>
                                 <property name="title" translatable="yes">Name</property>
                                 <property name="clickable">True</property>
+                                <property name="reorderable">True</property>
+                                <property name="sort_indicator">True</property>
                                 <property name="sort_column_id">1</property>
                                 <child>
-                                  <object class="GtkCellRendererText"/>
+                                  <object class="GtkCellRendererText">
+                                    <property name="editable">True</property>
+                                    <signal name="edited" handler="post_name_changed_cb" object="MyMain" swapped="no"/>
+                                  </object>
                                   <attributes>
                                     <attribute name="text">1</attribute>
                                   </attributes>
@@ -1160,6 +1234,7 @@ audio-volume-medium-symbolic</property>
                             </child>
                             <child>
                               <object class="GtkTreeViewColumn">
+                                <property name="resizable">True</property>
                                 <property name="sizing">autosize</property>
                                 <property name="title" translatable="yes">Preview</property>
                                 <child>
@@ -1184,11 +1259,12 @@ audio-volume-medium-symbolic</property>
                             <property name="can_focus">False</property>
                             <property name="layout_style">start</property>
                             <child>
-                              <object class="GtkButton">
+                              <object class="GtkButton" id="add_post">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                                 <property name="relief">none</property>
+                                <signal name="clicked" handler="add_post_menu_cb" object="MyMain" swapped="no"/>
                                 <child>
                                   <object class="GtkImage">
                                     <property name="visible">True</property>
@@ -1205,7 +1281,7 @@ audio-volume-medium-symbolic</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkButton">
+                              <object class="GtkButton" id="del_post">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
@@ -1273,4 +1349,191 @@ audio-volume-medium-symbolic</property>
       </object>
     </child>
   </template>
+  <object class="GtkImage" id="window">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="resource">/my/window.png</property>
+    <property name="icon_size">3</property>
+  </object>
+  <object class="GtkMenu" id="add_post_menu">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Color Convert</property>
+        <property name="use_underline">True</property>
+        <child type="submenu">
+          <object class="GtkMenu">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkImageMenuItem">
+                <property name="label" translatable="yes">To Gray Color 灰阶颜色</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="image">gray</property>
+                <property name="use_stock">False</property>
+                <property name="always_show_image">True</property>
+                <signal name="activate" handler="add_to_gray_cb" object="MyMain" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkImageMenuItem">
+                <property name="label" translatable="yes">To Black White Color 黑白二值</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="image">bw</property>
+                <property name="use_stock">False</property>
+                <property name="always_show_image">True</property>
+                <signal name="activate" handler="add_to_bw_cb" object="MyMain" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkImageMenuItem">
+                <property name="label" translatable="yes">ARGB Color Remap ARGB颜色重映</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="image">remap</property>
+                <property name="use_stock">False</property>
+                <property name="always_show_image">True</property>
+                <signal name="activate" handler="add_argb_remap_cb" object="MyMain" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Image Post Process</property>
+        <property name="use_underline">True</property>
+        <child type="submenu">
+          <object class="GtkMenu">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkImageMenuItem">
+                <property name="label" translatable="yes">Error Diffusion 误差扩散</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="image">diff</property>
+                <property name="use_stock">False</property>
+                <property name="always_show_image">True</property>
+                <signal name="activate" handler="add_error_diffuse_cb" object="MyMain" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkImageMenuItem">
+                <property name="label" translatable="yes">Transparent 透明</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="image">transparent</property>
+                <property name="use_stock">False</property>
+                <property name="always_show_image">True</property>
+                <signal name="activate" handler="add_transparent_cb" object="MyMain" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkImageMenuItem">
+                <property name="label" translatable="yes">Resize 大小调整</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="image">resize</property>
+                <property name="use_stock">False</property>
+                <property name="always_show_image">True</property>
+                <signal name="activate" handler="add_resize_cb" object="MyMain" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Image Data Process</property>
+        <property name="use_underline">True</property>
+        <child type="submenu">
+          <object class="GtkMenu">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkImageMenuItem">
+                <property name="label" translatable="yes">RGB Data Format 格式化RGB数值</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="image">rgbfmt</property>
+                <property name="use_stock">False</property>
+                <property name="always_show_image">True</property>
+                <signal name="activate" handler="add_rgb_data_format_cb" object="MyMain" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkImageMenuItem">
+                <property name="label" translatable="yes">Scan Bitmap  Data 扫描位图数值</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="image">scan</property>
+                <property name="use_stock">False</property>
+                <property name="always_show_image">True</property>
+                <signal name="activate" handler="add_scan_bitmap_cb" object="MyMain" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Image Output</property>
+        <property name="use_underline">True</property>
+        <child type="submenu">
+          <object class="GtkMenu">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkImageMenuItem">
+                <property name="label" translatable="yes">Window 窗口</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="image">window</property>
+                <property name="use_stock">False</property>
+                <property name="always_show_image">True</property>
+                <signal name="activate" handler="add_output_window_cb" object="MyMain" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkImageMenuItem">
+                <property name="label" translatable="yes">Binary File 二进制文件</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="image">file</property>
+                <property name="use_stock">False</property>
+                <property name="always_show_image">True</property>
+                <signal name="activate" handler="add_output_raw_file_cb" object="MyMain" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkImageMenuItem">
+                <property name="label" translatable="yes">Image File 图像文件</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="image">image_file</property>
+                <property name="use_stock">False</property>
+                <property name="always_show_image">True</property>
+                <signal name="activate" handler="add_output_image_file_cb" object="MyMain" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
 </interface>

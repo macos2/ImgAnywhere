@@ -12,20 +12,24 @@
 #include <glib-object.h>
 #include <cairo.h>
 #include <gtk/gtk.h>
-#include "../ImgFormat.h"
-#include "../ImgTool.h"
-#include "../SurfFormat.h"
+
+#include "ImgFormat.h"
+#include "ImgTool.h"
+#include "MyLogo.h"
+#include "SurfFormat.h"
 
 G_BEGIN_DECLS
 
 typedef enum {
 	POST_NONE,
+	POST_BW,
 	POST_GRAY,
 	POST_RGB_FMT,
 	POST_ARGB_REMAP,
 	POST_DIFFUSE,
 	POST_TRANSPARENT,
 	POST_BITMAP,
+	POST_RESIZE,
 	OUT_WINDOWS,
 	OUT_FILE,
 	OUT_IMG_FILE,
@@ -37,9 +41,14 @@ typedef struct {
 	PostType post_type;
 	guint32 w, h;
 	guint64 out_size;
-	gboolean can_display;
 	gpointer next_post;
 } PostCommon;
+
+typedef struct {
+	PostCommon com;
+	MeanOpt mean;
+	guint8 thresold;
+} PostBw;
 
 typedef struct {
 	PostCommon com;
@@ -58,7 +67,8 @@ typedef struct {
 
 typedef struct {
 	PostCommon com;
-	uint8_t rank,radio;
+	uint8_t rank;
+	DiffRatio radio;
 } PostDiffuse;
 
 typedef struct {
@@ -80,6 +90,14 @@ typedef struct {
 	ByteOrder order;
 	BitDirection bitdir;
 } PostBitmap;
+
+
+typedef struct{
+	PostCommon com;
+	guint32 resize_w,resize_h;
+	gboolean expand;
+	gboolean full;
+}PostResize;
 
 typedef struct {
 	PostCommon com;
@@ -109,14 +127,16 @@ void append_post_process(PostCommon *post,PostCommon *append_post);
 PostCommon *next_post_process(PostCommon *post);
 gboolean post_process(PostCommon *post,guint8 *data,gpointer *out);
 
+gboolean post_bw(PostBw *bw,cairo_surface_t *surf,gpointer *out);
 gboolean post_gray(PostGray *gray,cairo_surface_t *surf,gpointer *out);
 gboolean post_rgb_fmt(PostRGBFmt *rgbfmt,cairo_surface_t *surf,gpointer *out);
 gboolean post_argb_remap(PostARGBRemap *argbremap,cairo_surface_t *surf,gpointer *out);
 gboolean post_diffuse(PostDiffuse *diffuse,cairo_surface_t *surf,gpointer *out);
 gboolean post_transparent(PostTransparent *transparent,cairo_surface_t *surf,gpointer *out);
 gboolean post_bitmap(PostBitmap *bitmap,cairo_surface_t *surf,gpointer *out);
+gboolean post_resize(PostResize *resize,cairo_surface_t *surf,gpointer *out);
 gboolean out_windows(OutWindow *window,cairo_surface_t *surf,gpointer *out);
-gboolean out_file(OutFile *file,guint8 *data,gpointer *out);
+gboolean out_file(OutFile *file,cairo_surface_t *surf,gpointer *out);
 gboolean out_img_file(OutImgFile *img,cairo_surface_t *surf,gpointer *out);
 G_END_DECLS
 

@@ -5,8 +5,8 @@
  *      Author: tom
  */
 
-#ifndef IMGTOOL_H_
-#define IMGTOOL_H_
+#ifndef UI_IMGTOOL_H_
+#define UI_IMGTOOL_H_
 
 #include <math.h>
 #include <stdint.h>
@@ -150,4 +150,4 @@ void img_error_diffusion(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t 
  */
 void img_edge_detect(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t pixel_size);
 
-#endif /* IMGTOOL_H_ */
+#endif /* UI_IMGTOOL_H_ */

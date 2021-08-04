@@ -10,7 +10,8 @@
 #include <glib.h>
 #include <glib-object.h>
 #include <gtk/gtk.h>
-#include "../ImgTool.h"
+
+#include "ImgTool.h"
 #define MY_TYPE_VIDEO_AREA my_video_area_get_type()
 
 typedef enum{

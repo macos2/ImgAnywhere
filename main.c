@@ -6,9 +6,9 @@
  */
 #include <gtk/gtk.h>
 
-#include "ImgFormat.h"
-#include "SurfFormat.h"
-#include "ImgTool.h"
+#include "ui/ImgFormat.h"
+#include "ui/SurfFormat.h"
+#include "ui/ImgTool.h"
 #include "ui/MyMain.h"
 #include "ui/MyVideoArea.h"
 gdouble angle;

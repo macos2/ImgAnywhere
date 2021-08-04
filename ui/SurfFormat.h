@@ -5,12 +5,13 @@
  *      Author: TOM
  */
 
-#ifndef SURFFORMAT_H_
-#define SURFFORMAT_H_
+#ifndef UI_SURFFORMAT_H_
+#define UI_SURFFORMAT_H_
 
 #include <stdint.h>
 #include <glib.h>
 #include <cairo.h>
+
 #include "ImgTool.h"
 
 //扫描方向定义
@@ -55,4 +56,4 @@ void surf_rgba_to_bw_color(cairo_surface_t *surf,MeanOpt means,uint8_t threshold
 
 
 
-#endif /* SURFFORMAT_H_ */
+#endif /* UI_SURFFORMAT_H_ */

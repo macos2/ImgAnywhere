@@ -12,10 +12,12 @@
 #include <glib-object.h>
 #include <gtk/gtk.h>
 #include <gst/gst.h>
+#include "gresources.h"
 #include "MyVideoArea.h"
 #include "MyLogo.h"
 //#include "MyVideoAreaFilter.h"
-#include "MyAreaFilterPad.h"
+//#include "MyAreaFilterPad.h"
+#include "PostProcess.h"
 G_BEGIN_DECLS
 
 #define MY_TYPE_MAIN my_main_get_type()

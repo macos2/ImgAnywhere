@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/my">
+	<file compressed="true">bw.png</file>
+	<file compressed="true">file.png</file>
+	<file compressed="true">image_file.png</file>
+	<file compressed="true">resize.png</file>
+	<file compressed="true">scan.png</file>
+	<file compressed="true">window.png</file>
+	<file compressed="true">diff.png</file>
+	<file compressed="true">gray.png</file>
+	<file compressed="true">remap.png</file>
+	<file compressed="true">rgbfmt.png</file>
+	<file compressed="true">transparent.png</file>
+	<file compressed="true">MyMain.glade</file>
+  </gresource>
+</gresources>

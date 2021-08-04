@@ -6,6 +6,7 @@
  */
 
 #include "MyMain.h"
+
 #define GET_PRIV   MyMainPrivate *priv=my_main_get_instance_private(self)
 
 typedef struct {
@@ -31,18 +32,20 @@ typedef struct {
 	GstState state;
 	GtkDialog *open_uri_dialog;
 	GtkDrawingArea *preview_area;
+	GtkMenu *add_post_menu;
+	GtkImage *bw,*diff,*file,*gray,*remap,*rgbfmt,*scan,*transparent,*window,*image_file,*resize;
 } MyMainPrivate;
 
 G_DEFINE_TYPE_WITH_CODE(MyMain, my_main, GTK_TYPE_WINDOW,
 		G_ADD_PRIVATE(MyMain));
 
 enum {
-	col_id, col_name, col_pixbuf, col_type, col_data, num_col,
+	col_id, col_name, col_preview_pixbuf, col_type_pixbuf,col_type, col_data, num_col,
 };
 
 GtkListStore* create_process_list() {
 	GtkListStore *list = gtk_list_store_new(num_col, G_TYPE_UINT, G_TYPE_STRING,
-	GDK_TYPE_PIXBUF, G_TYPE_UINT,
+	GDK_TYPE_PIXBUF,GDK_TYPE_PIXBUF,G_TYPE_UINT,
 	G_TYPE_POINTER);
 	return list;
 }
@@ -563,6 +566,172 @@ void full_screen_toggled_cb(GtkToggleButton *togglebutton, MyMain *self) {
 	}
 }
 
+void add_post_menu_cb(GtkButton *button,MyMain *self){
+	GET_PRIV;
+	gtk_menu_popup_at_widget(priv->add_post_menu,button,GDK_GRAVITY_NORTH,GDK_GRAVITY_NORTH,NULL);
+}
+
+void post_name_changed_cb (GtkCellRendererText *renderer,
+               gchar               *path,
+               gchar               *new_text,
+			   MyMain *self){
+	GET_PRIV;
+	GtkTreePath *p=gtk_tree_path_new_from_string(path);
+	GtkListStore *store=priv->current_area->process_list;
+	GtkTreeIter iter;
+	gtk_tree_model_get_iter(store,&iter,p);
+	gtk_list_store_set(store,&iter,col_name,new_text,-1);
+	gtk_tree_path_free(p);
+}
+
+void add_post_process(MyMain *self,gpointer data,gchar *name,PostType type){
+	GET_PRIV;
+	AreaInfo *info=priv->current_area;
+	GtkTreeIter iter;
+	guint id=gtk_tree_model_iter_n_children(info->process_list,NULL);
+	gchar *n=g_strdup_printf("%s %d",name,id);
+	gtk_list_store_append(info->process_list,&iter);
+	GtkImage *ti=NULL;
+	GdkPixbuf *pixbuf=NULL;
+	switch (type){
+	case POST_ARGB_REMAP:
+		ti=priv->remap;
+		break;
+	case POST_BITMAP:
+		ti=priv->scan;
+		break;
+	case POST_BW:
+		ti=priv->bw;
+		break;
+	case POST_DIFFUSE:
+		ti=priv->diff;
+		break;
+	case POST_GRAY:
+		ti=priv->gray;
+		break;
+	case POST_RESIZE:
+		ti=priv->resize;
+		break;
+	case POST_RGB_FMT:
+		ti=priv->rgbfmt;
+		break;
+	case POST_TRANSPARENT:
+		ti=priv->transparent;
+		break;
+	case OUT_FILE:
+		ti=priv->file;
+		break;
+	case OUT_IMG_FILE:
+		ti=priv->image_file;
+		break;
+	case OUT_WINDOWS:
+		ti=priv->window;
+		break;
+	default:
+		ti=NULL;
+	    break;
+	}
+	if(ti!=NULL)pixbuf=gtk_image_get_pixbuf(ti);
+	gtk_list_store_set(info->process_list,&iter,col_data,data,col_id,id,col_name,n,col_preview_pixbuf,NULL,col_type_pixbuf,pixbuf,col_type,type,-1);
+	g_free(n);
+}
+
+void add_to_gray_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	if(priv->current_area==NULL)return;
+	PostGray *post=g_malloc0(sizeof(PostGray));
+	add_post_process(self, post, "Gray", POST_GRAY);
+}
+
+void add_to_bw_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	if(priv->current_area==NULL)return;
+	PostBw *post=g_malloc0(sizeof(PostBw));
+	add_post_process(self, post, "Black White", POST_BW);
+	post->thresold=127;
+
+}
+
+void add_argb_remap_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	if(priv->current_area==NULL)return;
+	PostARGBRemap *post=g_malloc0(sizeof(PostARGBRemap));
+	add_post_process(self, post, "ARGB Remap", POST_ARGB_REMAP);
+	post->remap_weight.AA=1;
+	post->remap_weight.RR=1;
+	post->remap_weight.GG=1;
+	post->remap_weight.BB=1;
+}
+
+void add_error_diffuse_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	if(priv->current_area==NULL)return;
+	PostDiffuse *post=g_malloc0(sizeof(PostDiffuse));
+	add_post_process(self, post, "Error Diffusion", POST_DIFFUSE);
+	post->rank=127;
+	post->radio.bm=diff_332.bm;
+	post->radio.r=diff_332.r;
+	post->radio.rb=diff_332.rb;
+}
+
+void add_transparent_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	if(priv->current_area==NULL)return;
+	PostTransparent *post=g_malloc0(sizeof(PostTransparent));
+	add_post_process(self, post, "Transparent", POST_TRANSPARENT);
+	post->a=255;
+}
+
+void add_rgb_data_format_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	if(priv->current_area==NULL)return;
+	PostRGBFmt *post=g_malloc0(sizeof(PostRGBFmt));
+	add_post_process(self, post, "RGB Format", POST_RGB_FMT);
+	post->fmt=RGB_FORMAT_888;
+}
+
+void add_scan_bitmap_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	if(priv->current_area==NULL)return;
+	PostBitmap *post=g_malloc0(sizeof(PostBitmap));
+	add_post_process(self, post, "Scan Bitmap", POST_BITMAP);
+	post->thresold=127;
+	post->gray_rank=2;
+}
+
+void add_resize_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	if(priv->current_area==NULL)return;
+	PostResize *post=g_malloc0(sizeof(PostResize));
+	add_post_process(self, post, "Resize", POST_RESIZE);
+	post->resize_w=128;
+	post->resize_h=64;
+}
+
+void add_output_window_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	if(priv->current_area==NULL)return;
+	PostCommon *post=g_malloc0(sizeof(OutWindow));
+	add_post_process(self, post, "Window Output", OUT_WINDOWS);
+}
+
+void add_output_raw_file_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	if(priv->current_area==NULL)return;
+	OutFile *post=g_malloc0(sizeof(OutFile));
+	add_post_process(self, post, "File Output", OUT_FILE);
+	post->filename=g_strdup("output.txt");
+}
+
+void add_output_image_file_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	if(priv->current_area==NULL)return;
+	OutImgFile *post=g_malloc0(sizeof(OutImgFile));
+	add_post_process(self, post, "Image Output", OUT_IMG_FILE);
+	post->name_fmt=g_strdup("image-%d.png");
+}
+
+
 gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 	GET_PRIV;
 	gint64 pos, dur;
@@ -599,13 +768,14 @@ gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 }
 
 static void my_main_class_init(MyMainClass *klass) {
-	size_t s;
-	gchar *glade;
-	g_file_get_contents("ui/MyMain.glade", &glade, &s, NULL);
-	GBytes *b = g_bytes_new(glade, s);
-	gtk_widget_class_set_template(klass, b);
-	g_bytes_unref(b);
-	g_free(glade);
+//	size_t s;
+//	gchar *glade;
+//	g_file_get_contents("ui/MyMain.glade", &glade, &s, NULL);
+//	GBytes *b = g_bytes_new(glade, s);
+//	gtk_widget_class_set_template(klass, b);
+//	g_bytes_unref(b);
+//	g_free(glade);
+	gtk_widget_class_set_template_from_resource(klass,"/my/MyMain.glade");
 	gtk_widget_class_bind_template_child_private(klass, MyMain, video_box);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, pos_x);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, pos_y);
@@ -626,6 +796,21 @@ static void my_main_class_init(MyMainClass *klass) {
 			open_uri_dialog);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, open_uri);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, preview_area);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, add_post_menu);
+
+	gtk_widget_class_bind_template_child_private(klass, MyMain, bw);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, diff);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, file);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, gray);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, remap);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, rgbfmt);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, scan);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, transparent);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, window);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, image_file);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, resize);
+
+
 	gtk_widget_class_bind_template_callback(klass, label_changed_cb);
 	gtk_widget_class_bind_template_callback(klass, pos_changed_cb);
 	gtk_widget_class_bind_template_callback(klass, size_changed_cb);
@@ -657,6 +842,21 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_callback(klass, open_screen_cb);
 	gtk_widget_class_bind_template_callback(klass, full_screen_toggled_cb);
 	gtk_widget_class_bind_template_callback(klass, preview_area_draw_cb);
+	gtk_widget_class_bind_template_callback(klass, add_post_menu_cb);
+	gtk_widget_class_bind_template_callback(klass, post_name_changed_cb);
+
+	//menu callback
+	gtk_widget_class_bind_template_callback(klass, add_argb_remap_cb);
+	gtk_widget_class_bind_template_callback(klass, add_error_diffuse_cb);
+	gtk_widget_class_bind_template_callback(klass, add_output_image_file_cb);
+	gtk_widget_class_bind_template_callback(klass, add_output_raw_file_cb);
+	gtk_widget_class_bind_template_callback(klass, add_output_window_cb);
+	gtk_widget_class_bind_template_callback(klass, add_rgb_data_format_cb);
+	gtk_widget_class_bind_template_callback(klass, add_scan_bitmap_cb);
+	gtk_widget_class_bind_template_callback(klass, add_to_bw_cb);
+	gtk_widget_class_bind_template_callback(klass, add_to_gray_cb);
+	gtk_widget_class_bind_template_callback(klass, add_transparent_cb);
+	gtk_widget_class_bind_template_callback(klass, add_resize_cb);
 
 }
 

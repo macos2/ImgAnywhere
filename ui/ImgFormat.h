@@ -5,8 +5,8 @@
  *      Author: tom
  */
 
-#ifndef IMGFORMAT_H_
-#define IMGFORMAT_H_
+#ifndef UI_IMGFORMAT_H_
+#define UI_IMGFORMAT_H_
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -45,4 +45,4 @@ uint64_t img_data_to_string(uint8_t *data,char *note,uint64_t length,uint32_t co
 uint64_t img_data_to_c_array_string(uint8_t *data,uint64_t length,uint32_t col,char *note,char **res);
 uint64_t img_data_to_asm_db_string(uint8_t *data,uint64_t length,uint32_t col,char *note,char **res);
 
-#endif /* IMGFORMAT_H_ */
+#endif /* UI_IMGFORMAT_H_ */
