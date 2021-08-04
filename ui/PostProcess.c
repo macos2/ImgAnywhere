@@ -63,6 +63,64 @@ gboolean post_process(PostCommon *post,guint8 *data,gpointer *out){
 	return ret;
 }
 
+cairo_surface_t *post_preview(PostCommon *post,cairo_surface_t *surf){
+	if(surf==NULL)return NULL;
+	guint w,h;
+	w=cairo_image_surface_get_width(surf);
+	h=cairo_image_surface_get_height(surf);
+	cairo_surface_t *out=cairo_image_surface_create(CAIRO_FORMAT_ARGB32,w,h);
+	cairo_t *cr=cairo_create(out);
+	cairo_set_source_surface(cr,surf,0,0);
+	cairo_paint(cr);
+	cairo_surface_flush(out);
+	guint8 *data=cairo_image_surface_get_data(out);
+	switch (post->post_type){
+	case POST_BITMAP:
+		PostBitmap *bit=post;
+		surf_rgba_to_bw_color(out,MEAN_NUM, bit->thresold);
+		break;
+	case POST_ARGB_REMAP:
+		PostARGBRemap *remap=post;
+		img_argb_remap(data, data, w, h, &remap->remap_weight);
+		break;
+	case POST_DIFFUSE:
+		PostDiffuse *diff=post;
+		img_error_diffusion(data, data, w, h, 4, diff->rank, &diff->radio);
+		break;
+	case POST_GRAY:
+		PostGray *gray=post;
+		img_argb_to_gray(data, data, w, h, gray->mean);
+		break;
+	case POST_RGB_FMT:
+		PostRGBFmt *fmt=post;
+		guint8 rank=0;
+		switch (fmt->fmt){
+		RGB_FORMAT_444:
+		rank=16;break;
+		RGB_FORMAT_565:
+		rank=32;break;
+		RGB_FORMAT_666:
+		rank=64;break;
+		RGB_FORMAT_888:
+		default :
+			rank=255;
+		}
+		img_rank(data, data, w*4, h, rank);
+		break;
+	case POST_TRANSPARENT:
+
+	case POST_BW:
+		post_bw(post, out, NULL);
+		break;
+	case POST_RESIZE:
+	default:
+
+	}
+	cairo_destroy(cr);
+	return out;
+}
+
+
 gboolean post_bw(PostBw *bw,cairo_surface_t *surf,gpointer *out){
 	PostCommon *com=&bw->com;
 	cairo_surface_flush(surf);
