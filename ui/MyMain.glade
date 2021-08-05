@@ -1174,7 +1174,7 @@ audio-volume-medium-symbolic</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkTreeView" id="modifier_view">
+                          <object class="GtkTreeView" id="post_tree_view">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="search_column">1</property>
@@ -1286,6 +1286,7 @@ audio-volume-medium-symbolic</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                                 <property name="relief">none</property>
+                                <signal name="clicked" handler="del_post_cb" object="MyMain" swapped="no"/>
                                 <child>
                                   <object class="GtkImage">
                                     <property name="visible">True</property>

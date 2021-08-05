@@ -63,37 +63,51 @@ gboolean post_process(PostCommon *post,guint8 *data,gpointer *out){
 	return ret;
 }
 
-cairo_surface_t *post_preview(PostCommon *post,cairo_surface_t *surf){
+GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t *surf){
 	if(surf==NULL)return NULL;
-	guint w,h;
+	guint w,h,i;
+	guint8 rank=0;
+	PostRGBFmt *fmt;
+	PostGray *gray;
+	PostDiffuse *diff;
+	PostARGBRemap *remap;
+	PostBitmap *bit;
 	w=cairo_image_surface_get_width(surf);
 	h=cairo_image_surface_get_height(surf);
 	cairo_surface_t *out=cairo_image_surface_create(CAIRO_FORMAT_ARGB32,w,h);
 	cairo_t *cr=cairo_create(out);
-	cairo_set_source_surface(cr,surf,0,0);
-	cairo_paint(cr);
-	cairo_surface_flush(out);
-	guint8 *data=cairo_image_surface_get_data(out);
+	if(post->post_type!=POST_DIFFUSE){
+		cairo_set_source_surface(cr,surf,0,0);
+		cairo_paint(cr);
+		cairo_surface_flush(out);
+	}
+	guint8 t,*p,*data=cairo_image_surface_get_data(out);
 	switch (post->post_type){
 	case POST_BITMAP:
-		PostBitmap *bit=post;
-		surf_rgba_to_bw_color(out,MEAN_NUM, bit->thresold);
+		bit=post;
+		if(bit->gray==GRAY_SIM_DIFFUSE){
+			surf_rgba_to_gray_color(out, bit->mean);
+			img_error_diffusion(data, data, w, h, 4, bit->gray_rank, &diff_332);
+		}else if(bit->gray==GRAY_SIM_MUL_THRESOLD){
+			surf_rgba_to_gray_color(out, bit->mean);
+		}else{
+			surf_rgba_to_bw_color(out,MEAN_NUM, bit->thresold);
+		}
 		break;
 	case POST_ARGB_REMAP:
-		PostARGBRemap *remap=post;
+		remap=post;
 		img_argb_remap(data, data, w, h, &remap->remap_weight);
 		break;
 	case POST_DIFFUSE:
-		PostDiffuse *diff=post;
-		img_error_diffusion(data, data, w, h, 4, diff->rank, &diff->radio);
+		diff=post;
+		img_error_diffusion(cairo_image_surface_get_data(surf), data, w, h, 4, diff->rank, &diff->radio);
 		break;
 	case POST_GRAY:
-		PostGray *gray=post;
-		img_argb_to_gray(data, data, w, h, gray->mean);
+		gray=post;
+		surf_rgba_to_gray_color(out, gray->mean);
 		break;
 	case POST_RGB_FMT:
-		PostRGBFmt *fmt=post;
-		guint8 rank=0;
+		fmt=post;
 		switch (fmt->fmt){
 		RGB_FORMAT_444:
 		rank=16;break;
@@ -108,16 +122,28 @@ cairo_surface_t *post_preview(PostCommon *post,cairo_surface_t *surf){
 		img_rank(data, data, w*4, h, rank);
 		break;
 	case POST_TRANSPARENT:
-
+		post_transparent(post, out, NULL);
+		break;
 	case POST_BW:
 		post_bw(post, out, NULL);
 		break;
-	case POST_RESIZE:
 	default:
-
+		break;
 	}
+	cairo_surface_mark_dirty(out);
 	cairo_destroy(cr);
-	return out;
+	p=data;
+	//GdkPixbuf            p[0] = red; p[1] = green; p[2] = blue; p[3] = alpha;
+	//CAIRO_FORMAT_ARGB32  d[0] = blue;p[1] = green; d[2] = red;  d[3] = alpha;
+	for(i=0;i<w*h;i++){
+		//convert format from CAIRO_FORMAT_ARGB32 to GdkPixbuf
+		t=p[0];    //t=blue
+		p[0]=p[2]; //p[0]=red
+		p[2]=t;    //p[2]=blue
+		p+=4;      //next pix
+	}
+	GdkPixbuf *pixbuf=gdk_pixbuf_new_from_data(data,GDK_COLORSPACE_RGB,TRUE,8,w,h,w*4,cairo_surface_destroy,out);
+	return pixbuf;
 }
 
 

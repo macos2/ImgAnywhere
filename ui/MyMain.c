@@ -20,7 +20,7 @@ typedef struct {
 			*scale, *play_speed;
 	GtkScrolledWindow *video_box;
 	MyVideoArea *video_area;
-	GtkTreeView *modifier_view;
+	GtkTreeView *post_tree_view;
 	GtkPaned *paned;
 	AreaInfo *current_area;
 	GtkToggleButton *size_radio_lock, *full_screen;
@@ -40,7 +40,7 @@ G_DEFINE_TYPE_WITH_CODE(MyMain, my_main, GTK_TYPE_WINDOW,
 		G_ADD_PRIVATE(MyMain));
 
 enum {
-	col_id, col_name, col_preview_pixbuf, col_type_pixbuf,col_type, col_data, num_col,
+	col_id, col_name, col_preview_pixbuf, col_type_pixbuf,col_type, col_post, num_col,
 };
 
 GtkListStore* create_process_list() {
@@ -96,7 +96,7 @@ void area_select(MyVideoArea *video_area, VideoBoxArea *area, MyMain *self) {
 	priv->r_w_h = area->w / area->h;
 	gtk_toggle_button_set_active(priv->size_radio_lock, radio);
 	AreaInfo *info = g_hash_table_lookup(priv->area_table, area);
-	gtk_tree_view_set_model(priv->modifier_view, info->process_list);
+	gtk_tree_view_set_model(priv->post_tree_view, info->process_list);
 }
 
 void area_move(MyVideoArea *video_area, VideoBoxArea *area, gdouble *x,
@@ -524,7 +524,7 @@ gboolean preview_area_draw_cb(GtkDrawingArea *preview_area, cairo_t *cr,
 	cairo_rectangle(cr, 0, 0, alloc.width, alloc.height);
 	cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
 	cairo_fill(cr);
-	if (priv->current_area != NULL) {
+	if(priv->current_area == NULL)return TRUE;
 		if (priv->current_area->surf != NULL)
 			cairo_surface_destroy(priv->current_area->surf);
 		priv->current_area->surf = my_video_area_get_area_content(priv->video_area, priv->current_area->area);
@@ -542,7 +542,24 @@ gboolean preview_area_draw_cb(GtkDrawingArea *preview_area, cairo_t *cr,
 		if(wr>1.)cairo_pattern_set_filter( cairo_get_source(cr),CAIRO_FILTER_NEAREST);//enlarge the image
 		cairo_paint(cr);
 		cairo_restore(cr);
-	}
+
+		//update post preview
+		GtkTreeIter iter;
+		GdkPixbuf *new,*old;
+		PostCommon *post;
+		gboolean not_empty=gtk_tree_model_get_iter_first(priv->current_area->process_list,&iter);
+		if(!not_empty)return TRUE;
+		cairo_surface_t *preview_surf=priv->current_area->surf;
+		gtk_tree_model_get(priv->current_area->process_list,&iter,col_post,&post,col_preview_pixbuf,&old,-1);
+		while(1){
+			new=post_preview(post, preview_surf);
+			gtk_list_store_set(priv->current_area->process_list,&iter,col_preview_pixbuf,new,-1);
+			if(old!=NULL)g_object_unref(old);
+			if(preview_surf!=priv->current_area->surf)cairo_surface_destroy(preview_surf);
+			if(!gtk_tree_model_iter_next(priv->current_area->process_list,&iter))break;
+			gtk_tree_model_get(priv->current_area->process_list,&iter,col_post,&post,col_preview_pixbuf,&old,-1);
+			preview_surf=gdk_cairo_surface_create_from_pixbuf(new,1,NULL);
+		}
 	return TRUE;
 }
 
@@ -571,6 +588,35 @@ void add_post_menu_cb(GtkButton *button,MyMain *self){
 	gtk_menu_popup_at_widget(priv->add_post_menu,button,GDK_GRAVITY_NORTH,GDK_GRAVITY_NORTH,NULL);
 }
 
+void del_post_cb(GtkButton *button,MyMain *self){
+	GET_PRIV;
+	GtkTreeIter iter;
+	GtkTreePath *path;
+	gboolean b;
+	if(priv->current_area==NULL)return;
+	GtkTreeSelection *sel=gtk_tree_view_get_selection(priv->post_tree_view);
+	GtkListStore *list_store=priv->current_area->process_list;
+	GList *l,*list_row=NULL,*list=gtk_tree_selection_get_selected_rows(sel,priv->post_tree_view);
+	l=list;
+	while(l!=NULL){
+		//list_row=g_list_append(list_row,gtk_tree_row_reference_new(model,l->data));
+		gtk_tree_model_row_deleted(list_store,l->data);
+		l=l->next;
+	}
+	l=list_row;
+	g_list_free_full(list,gtk_tree_path_free);
+
+//	while(l!=NULL){
+//		path=gtk_tree_row_reference_get_path(l->data);
+//		gtk_tree_model_get_iter(model,&iter,path);
+//		gtk_list_store_remove(priv->current_area->process_list,&iter);
+//		gtk_tree_path_free(path);
+//		l=l->next;
+//	}
+//
+//	g_list_free_full(list_row,gtk_tree_row_reference_free);
+}
+
 void post_name_changed_cb (GtkCellRendererText *renderer,
                gchar               *path,
                gchar               *new_text,
@@ -584,10 +630,11 @@ void post_name_changed_cb (GtkCellRendererText *renderer,
 	gtk_tree_path_free(p);
 }
 
-void add_post_process(MyMain *self,gpointer data,gchar *name,PostType type){
+void add_post_process(MyMain *self,PostCommon *post,gchar *name,PostType type){
 	GET_PRIV;
-	AreaInfo *info=priv->current_area;
 	GtkTreeIter iter;
+	AreaInfo *info=priv->current_area;
+	post->post_type=type;
 	guint id=gtk_tree_model_iter_n_children(info->process_list,NULL);
 	gchar *n=g_strdup_printf("%s %d",name,id);
 	gtk_list_store_append(info->process_list,&iter);
@@ -632,7 +679,7 @@ void add_post_process(MyMain *self,gpointer data,gchar *name,PostType type){
 	    break;
 	}
 	if(ti!=NULL)pixbuf=gtk_image_get_pixbuf(ti);
-	gtk_list_store_set(info->process_list,&iter,col_data,data,col_id,id,col_name,n,col_preview_pixbuf,NULL,col_type_pixbuf,pixbuf,col_type,type,-1);
+	gtk_list_store_set(info->process_list,&iter,col_post,post,col_id,id,col_name,n,col_preview_pixbuf,NULL,col_type_pixbuf,pixbuf,col_type,type,-1);
 	g_free(n);
 }
 
@@ -668,7 +715,7 @@ void add_error_diffuse_cb (GtkMenuItem *menuitem,MyMain *self){
 	if(priv->current_area==NULL)return;
 	PostDiffuse *post=g_malloc0(sizeof(PostDiffuse));
 	add_post_process(self, post, "Error Diffusion", POST_DIFFUSE);
-	post->rank=127;
+	post->rank=2;
 	post->radio.bm=diff_332.bm;
 	post->radio.r=diff_332.r;
 	post->radio.rb=diff_332.rb;
@@ -680,6 +727,7 @@ void add_transparent_cb (GtkMenuItem *menuitem,MyMain *self){
 	PostTransparent *post=g_malloc0(sizeof(PostTransparent));
 	add_post_process(self, post, "Transparent", POST_TRANSPARENT);
 	post->a=255;
+	post->color_distance=10.;
 }
 
 void add_rgb_data_format_cb (GtkMenuItem *menuitem,MyMain *self){
@@ -785,7 +833,7 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_child_private(klass, MyMain, rotate);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, volume);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, paned);
-	gtk_widget_class_bind_template_child_private(klass, MyMain, modifier_view);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, post_tree_view);
 	gtk_widget_class_bind_template_child_private(klass, MyMain,
 			size_radio_lock);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, area_label);
@@ -844,6 +892,7 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_callback(klass, preview_area_draw_cb);
 	gtk_widget_class_bind_template_callback(klass, add_post_menu_cb);
 	gtk_widget_class_bind_template_callback(klass, post_name_changed_cb);
+	gtk_widget_class_bind_template_callback(klass, del_post_cb);
 
 	//menu callback
 	gtk_widget_class_bind_template_callback(klass, add_argb_remap_cb);
@@ -954,7 +1003,7 @@ void my_main_add_area(MyMain *self, gchar *label, gfloat x, gfloat y, gfloat w,
 void my_main_remove_area(MyMain *self, VideoBoxArea *area) {
 	GET_PRIV;
 	AreaInfo *info = NULL;
-	GtkListStore *treestore = gtk_tree_view_get_model(priv->modifier_view);
+	GtkListStore *treestore = gtk_tree_view_get_model(priv->post_tree_view);
 	info = g_hash_table_lookup(priv->area_table, area);
 	if (info != NULL) {
 		g_hash_table_remove(priv->area_table, area);
@@ -962,7 +1011,7 @@ void my_main_remove_area(MyMain *self, VideoBoxArea *area) {
 		if (info->surf != NULL)
 			cairo_surface_destroy(info->surf);
 		if (treestore == info->process_list)
-			gtk_tree_view_set_model(priv->modifier_view, NULL);
+			gtk_tree_view_set_model(priv->post_tree_view, NULL);
 		g_object_unref(info->process_list);
 		g_free(info);
 	}

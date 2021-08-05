@@ -3,6 +3,7 @@ OPT=$(shell pkg-config --libs --cflags gtk+-3.0 gstreamer-1.0 gstreamer-video-1.
 all:imganywhere ui/*.glade ui/*.xml
 
 imganywhere:*.c ui/*.c
+	-rm ui/gresources.c ui/gresources.h
 	make -C ui
 	gcc $^ -o $@ $(OPT)
 clean:

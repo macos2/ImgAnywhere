@@ -86,6 +86,7 @@ typedef struct {
 	PostCommon com;
 	GraySim gray;
 	guint8 thresold, gray_rank;
+	MeanOpt mean;
 	ScanDirection first, second;
 	ByteOrder order;
 	BitDirection bitdir;
@@ -126,7 +127,7 @@ PostProcessFunc get_post_process_func(PostCommon *post);
 void append_post_process(PostCommon *post,PostCommon *append_post);
 PostCommon *next_post_process(PostCommon *post);
 gboolean post_process(PostCommon *post,guint8 *data,gpointer *out);
-cairo_surface_t *post_preview(PostCommon *post,cairo_surface_t *surf,guint w,guint h);
+GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t *surf);
 
 gboolean post_bw(PostBw *bw,cairo_surface_t *surf,gpointer *out);
 gboolean post_gray(PostGray *gray,cairo_surface_t *surf,gpointer *out);

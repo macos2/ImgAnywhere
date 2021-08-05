@@ -110,6 +110,7 @@ void img_rank(uint8_t *in, uint8_t *out,
 	uint8_t *s=in;
 	uint8_t *d=out;
 	uint32_t i=w_byte*h;
+	if(rank==0)rank=1;
 	uint8_t u=256/rank;
 	while(i){
 		*d=*s-*s%u;
@@ -120,12 +121,11 @@ void img_rank(uint8_t *in, uint8_t *out,
 }
 
 void img_error_diffusion(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t pixel_size,uint8_t rank,DiffRatio *ratio){
-	uint8_t e;
 	uint32_t i,j;
 	uint32_t _w=w*pixel_size;
 	if(rank<=0)rank=1;
 	uint8_t u=255/rank;
-	uint16_t div=0,temp;
+	uint16_t div=0,e,temp;
 	div=ratio->bm+ratio->r+ratio->rb;
 	for(i=0;i<h;i++){
 		for(j=0;j<_w;j++){
