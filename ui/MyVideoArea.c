@@ -678,6 +678,7 @@ cairo_surface_t* my_video_area_get_area_content_by_name (MyVideoArea *self,
 cairo_surface_t *my_video_area_get_area_content(MyVideoArea *self,VideoBoxArea *area){
 	  MyVideoAreaPrivate *priv = my_video_area_get_instance_private (self);
 	  if (area == NULL) return NULL;
+	  if (priv->pixbuf==NULL) return NULL;
 	  cairo_surface_t *surf = cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
 							      area->w, area->h);
 	  cairo_t *cr = cairo_create (surf);

@@ -63,6 +63,10 @@ gboolean post_process(PostCommon *post,guint8 *data,gpointer *out){
 	return ret;
 }
 
+void destroy_surf (guchar *pixels, cairo_surface_t *out){
+	cairo_surface_destroy(out);
+}
+
 GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t *surf){
 	if(surf==NULL)return NULL;
 	guint w,h,i;
@@ -72,22 +76,57 @@ GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t *surf){
 	PostDiffuse *diff;
 	PostARGBRemap *remap;
 	PostBitmap *bit;
+	PostResize *resize;
+	gdouble rw,rh;
 	w=cairo_image_surface_get_width(surf);
 	h=cairo_image_surface_get_height(surf);
-	cairo_surface_t *out=cairo_image_surface_create(CAIRO_FORMAT_ARGB32,w,h);
+	cairo_surface_t *out,*temp;
+	if(post->post_type==POST_RESIZE){
+		resize=post;
+		out=cairo_image_surface_create(CAIRO_FORMAT_ARGB32,resize->resize_w,resize->resize_h);
+	}else{
+		out=cairo_image_surface_create(CAIRO_FORMAT_ARGB32,w,h);
+	}
 	cairo_t *cr=cairo_create(out);
-	if(post->post_type!=POST_DIFFUSE){
+	if(post->post_type==POST_RESIZE){
+		//resize the content and then paint to the surface.
+		rw=resize->resize_w/(w*1.);
+		rh=resize->resize_h/(h*1.);
+		if(resize->expand==FALSE){
+			if(resize->full){
+				rw=MAX(rw,rh);
+			}else{
+				rw=MIN(rw,rh);
+			}
+			rh=rw;
+		}
+		cairo_save(cr);
+		cairo_translate(cr,resize->resize_w/2.,resize->resize_h/2.);
+		cairo_scale(cr,rw,rh);
+		cairo_set_source_surface(cr,surf,w/-2.,h/-2.);
+		if(rw>1.)cairo_pattern_set_filter(cairo_get_source(cr),CAIRO_FILTER_NEAREST);
+		cairo_paint(cr);
+		cairo_restore(cr);
+		//update w,h for create pixbuf.
+		w=resize->resize_w;
+		h=resize->resize_h;
+	}else if(post->post_type==POST_DIFFUSE){
+		//do nothing
+	}else{
+		//copy the content to the surface.
 		cairo_set_source_surface(cr,surf,0,0);
 		cairo_paint(cr);
-		cairo_surface_flush(out);
 	}
+	cairo_surface_flush(out);
 	guint8 t,*p,*data=cairo_image_surface_get_data(out);
+	//modify the content by the post.
+	//be aware of the w=resize->resize_w , h=resize_h when post->post_type==POST_RESIZE;
 	switch (post->post_type){
 	case POST_BITMAP:
 		bit=post;
 		if(bit->gray==GRAY_SIM_DIFFUSE){
 			surf_rgba_to_gray_color(out, bit->mean);
-			img_error_diffusion(data, data, w, h, 4, bit->gray_rank, &diff_332);
+			img_error_diffusion(cairo_image_surface_get_data(surf), data, w, h, 4, bit->gray_rank, &diff_332);
 		}else if(bit->gray==GRAY_SIM_MUL_THRESOLD){
 			surf_rgba_to_gray_color(out, bit->mean);
 		}else{
@@ -127,6 +166,9 @@ GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t *surf){
 	case POST_BW:
 		post_bw(post, out, NULL);
 		break;
+	case OUT_WINDOWS:
+		out_windows(post, surf,NULL);
+		break;
 	default:
 		break;
 	}
@@ -140,12 +182,41 @@ GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t *surf){
 		t=p[0];    //t=blue
 		p[0]=p[2]; //p[0]=red
 		p[2]=t;    //p[2]=blue
-		p+=4;      //next pix
+		p+=4;      //next pixel
 	}
-	GdkPixbuf *pixbuf=gdk_pixbuf_new_from_data(data,GDK_COLORSPACE_RGB,TRUE,8,w,h,w*4,cairo_surface_destroy,out);
+	//be aware of the w=resize->resize_w , h=resize_h when post->post_type==POST_RESIZE;
+	GdkPixbuf *pixbuf=gdk_pixbuf_new_from_data(data,GDK_COLORSPACE_RGB,TRUE,8,w,h,w*4,destroy_surf,out);
 	return pixbuf;
 }
 
+void post_free(PostCommon *post){
+	OutFile *file;
+	OutImgFile *img;
+	OutWindow *win;
+	if(post==NULL)return;
+	switch(post->post_type){
+	case OUT_FILE:
+		file=post;
+		g_free(file->filename);
+		g_object_unref(file->file);
+		g_free(file);
+		break;
+	case OUT_IMG_FILE:
+		img=post;
+		g_free(img->name_fmt);
+		g_free(img);
+		break;
+	case OUT_WINDOWS:
+		win=post;
+		g_object_set_data(win->display_widget,"deleted",GUINT_TO_POINTER(1));//通知显示窗原后处理器已删除。
+		g_free(win);
+		break;
+	default:
+		g_free(post);
+		break;
+	}
+	return;
+}
 
 gboolean post_bw(PostBw *bw,cairo_surface_t *surf,gpointer *out){
 	PostCommon *com=&bw->com;
@@ -297,15 +368,21 @@ void logo_draw_cb(MyLogo *self,cairo_t *cr){
 	cairo_paint(cr);
 }
 
-void close_window_cb(GtkWidget *button,OutWindow *window){
-	cairo_surface_t *surf=g_object_get_data(window->display_widget,"surf");
-	GtkWindow *win=gtk_widget_get_toplevel(window->display_widget);
+void close_window_cb(GtkWidget *button,MyLogo *logo){
+	OutWindow *window;
+	cairo_surface_t *surf=g_object_get_data(logo,"surf");
+	gpointer deleted=g_object_get_data(logo,"deleted");//检测后处理是否被删除，非NULL则已经删除。
+	GtkWindow *win=gtk_widget_get_toplevel(logo);
 	if(surf!=NULL)cairo_surface_destroy(surf);
-	window->display_widget=NULL;
+	if(deleted==NULL){
+		window=g_object_get_data(logo,"post");
+		window->display_widget=NULL;
+	}
 	gtk_widget_destroy(win);
 }
 
 gboolean out_windows(OutWindow *window,cairo_surface_t *surf,gpointer *out){
+	if(surf==NULL)return FALSE;
 	guint32 w,h;
 	w=cairo_image_surface_get_width(surf);
 	h=cairo_image_surface_get_height(surf);
@@ -319,16 +396,18 @@ gboolean out_windows(OutWindow *window,cairo_surface_t *surf,gpointer *out){
 
 		GtkButton *button=gtk_button_new_from_icon_name("window-close-symbolic",GTK_ICON_SIZE_SMALL_TOOLBAR);
 		gtk_button_set_relief(button, GTK_RELIEF_NONE);
-		my_logo_pack(logo, button, 0, 0, 24, 24, FALSE);
-		g_signal_connect(button,"clicked",close_window_cb,window);
-		gtk_widget_show_all(win);
+		my_logo_pack(logo, button, 0, 0, 32, 32, FALSE);
+		g_signal_connect(button,"clicked",close_window_cb,window->display_widget);
 		gtk_window_resize(win,w,h);
+		gtk_widget_show_all(win);
 	}
 	if(window->display_widget!=NULL){
 		cairo_surface_t *s=g_object_get_data(window->display_widget,"surf");
 		if(s!=NULL)cairo_surface_destroy(s);
 		g_object_set_data(window->display_widget,"surf",cairo_surface_reference(surf));
+		g_object_set_data(window->display_widget,"post",window);
 		gtk_widget_queue_draw(window->display_widget);
+		gtk_window_resize(gtk_widget_get_toplevel(window->display_widget),w,h);
 	}
 	window->com.out_size=0;
 	return TRUE;
