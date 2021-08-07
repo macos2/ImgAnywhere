@@ -13,5 +13,7 @@
 	<file compressed="true">rgbfmt.png</file>
 	<file compressed="true">transparent.png</file>
 	<file compressed="true">MyMain.glade</file>
+	<file compressed="true">donate_alipay.png</file>
+	<file compressed="true">donate_weixin.png</file>
   </gresource>
 </gresources>

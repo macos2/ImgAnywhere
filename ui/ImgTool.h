@@ -24,10 +24,10 @@ typedef struct{
 }DiffRatio;
 
 typedef struct{
-	uint8_t RR,RG,RB,RA,RC;
-	uint8_t GR,GG,GB,GA,GC;
-	uint8_t BR,BG,BB,BA,BC;
-	uint8_t AR,AG,AB,AA,AC;
+	float RR,RG,RB,RA,RC;
+	float GR,GG,GB,GA,GC;
+	float BR,BG,BB,BA,BC;
+	float AR,AG,AB,AA,AC;
 }RemapWeight;
 
 //some common static value

@@ -30,10 +30,16 @@ typedef struct {
 	GstPipeline *pline, *screen_line, *internal_audio_line, *mic_line;
 	GstElement *video_sink, *playbin,*tee_sink,*area_filter;
 	GstState state;
-	GtkDialog *open_uri_dialog;
 	GtkDrawingArea *preview_area;
 	GtkMenu *add_post_menu;
 	GtkImage *bw,*diff,*file,*gray,*remap,*rgbfmt,*scan,*transparent,*window,*image_file,*resize;
+	GtkDialog *open_uri_dialog;
+	//post process setting widget below
+	GtkDialog *out_file_dialog,*out_image_file_dialog;
+	GtkDialog *post_bitmap_dialog,*post_bw_dialog,*post_diffuse_dialog,*post_gray_dialog,*post_resize_dialog,*post_rgb_fmt_dialog,*post_rgb_remap_dialog,*post_transparent_dialog;
+
+
+
 } MyMainPrivate;
 
 G_DEFINE_TYPE_WITH_CODE(MyMain, my_main, GTK_TYPE_WINDOW,
@@ -556,19 +562,19 @@ void post_view_refresh(	MyMain *self) {
 	if(priv->current_area == NULL)return;
 	gboolean not_empty=gtk_tree_model_get_iter_first(priv->current_area->process_list,&iter);
 	if(!not_empty)return;
-	cairo_surface_t *preview_surf=my_video_area_get_area_content(priv->video_area, priv->current_area->area);
-	if(preview_surf==NULL)return;
+	cairo_surface_t *surf=my_video_area_get_area_content(priv->video_area, priv->current_area->area);
+	if(surf==NULL)return;
 	while(1){
 		gtk_tree_model_get(priv->current_area->process_list,&iter,col_post,&post,col_preview_pixbuf,&old,-1);
-		new=post_preview(post, preview_surf);
+		new=post_preview(post, surf);
 		gtk_list_store_set(priv->current_area->process_list,&iter,col_preview_pixbuf,new,-1);
-		cairo_surface_destroy(preview_surf);
+		cairo_surface_destroy(surf);
 		if(old!=NULL)g_object_unref(old);
 		if(!gtk_tree_model_iter_next(priv->current_area->process_list,&iter)){
 			g_object_unref(new);
 			break;
 		}
-		preview_surf=gdk_cairo_surface_create_from_pixbuf(new,1,NULL);
+		surf=gdk_cairo_surface_create_from_pixbuf(new,1,NULL);
 		g_object_unref(new);
 	}
 }
@@ -802,6 +808,7 @@ gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 			gst_structure_get(s, "pixbuf", GDK_TYPE_PIXBUF, &p, NULL);
 			my_video_area_set_pixbuf(priv->video_area, p);
 			gtk_widget_queue_draw(priv->video_area);
+			gtk_widget_queue_draw(priv->preview_area);
 			post_view_refresh(self);
 			g_object_unref(p);
 			gst_element_query_position(priv->pline, GST_FORMAT_TIME, &pos);
