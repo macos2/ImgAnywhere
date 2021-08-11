@@ -123,7 +123,7 @@ uint64_t surf_a1_transform_by_scan(cairo_surface_t *s, uint8_t **res,
 		cairo_restore(cr);
 		cairo_surface_flush(temp);
 		cairo_destroy(cr);
-		cairo_surface_write_to_png(temp, "surfformat.png");
+		//cairo_surface_write_to_png(temp, "surfformat.png");
 		in = cairo_image_surface_get_data(temp);
 		//Scan DATA
 		out = result;

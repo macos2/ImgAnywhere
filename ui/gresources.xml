@@ -15,5 +15,14 @@
 	<file compressed="true">MyMain.glade</file>
 	<file compressed="true">donate_alipay.png</file>
 	<file compressed="true">donate_weixin.png</file>
+	<file compressed="true">scan_preview.png</file>
+	<file compressed="true">lp.png</file>
+	<file compressed="true">lv.png</file>
+	<file compressed="true">rp.png</file>
+	<file compressed="true">rv.png</file>
+	<file compressed="true">up.png</file>
+	<file compressed="true">uv.png</file>
+	<file compressed="true">dp.png</file>
+	<file compressed="true">dv.png</file>
   </gresource>
 </gresources>

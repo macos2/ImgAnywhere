@@ -24,15 +24,15 @@ typedef enum{
 
 //字节高低位次序
 typedef enum{
-	Byte_LSB_FIRST=0,
+	Byte_LSB_FIRST,
 	Byte_MSB_FIRST,
 }ByteOrder;
 
 //字节位与扫描方向的关系。
 typedef enum{
-BIT_DIR_NONE,		//字节表示像素值，跟扫描方向无关，如灰阶、彩色图像。
-BIT_DIR_PARALLEL,	//字节位代表一像素点，位排列方向跟扫描方向平行，如黑白图像，像素点只有黑(0)和白(1)两值。
 BIT_DIR_VERTICAL,	//字节位代表一像素点，位排列方向跟扫描方向垂直，如黑白图像，像素点只有黑(0)和白(1)两值。
+BIT_DIR_PARALLEL,	//字节位代表一像素点，位排列方向跟扫描方向平行，如黑白图像，像素点只有黑(0)和白(1)两值。
+BIT_DIR_NONE,		//字节表示像素值，跟扫描方向无关，如灰阶、彩色图像。
 }BitDirection;
 
 uint8_t bit_reversed(uint8_t n);

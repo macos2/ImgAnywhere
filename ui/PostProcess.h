@@ -36,12 +36,11 @@ typedef enum {
 } PostType;
 
 typedef struct {
-	guint32 id;
+	guint32 area_id;
 	gchar *name;
 	PostType post_type;
 	guint32 w, h;
 	guint64 out_size;
-	gpointer next_post;
 } PostCommon;
 
 typedef struct {
@@ -117,14 +116,13 @@ typedef struct {
 typedef struct {
 	PostCommon com;
 	gchar *name_fmt;
+	gchar *directory;
 	gboolean over_write;
 	guint32 index;
 } OutImgFile;
 
 typedef gboolean (*PostProcessFunc)(PostCommon *post,guint8 *data, gpointer *out);
 PostProcessFunc get_post_process_func(PostCommon *post);
-void append_post_process(PostCommon *post,PostCommon *append_post);
-PostCommon *next_post_process(PostCommon *post);
 gboolean post_process(PostCommon *post,guint8 *data,gpointer *out);
 GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t *surf);
 void post_free(PostCommon *post);

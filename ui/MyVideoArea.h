@@ -29,6 +29,7 @@ typedef struct{
 	cairo_matrix_t obj_mat;
 	gchar *label;
 	gchar *describe;
+	guint id;
 }VideoBoxArea;
 
 G_DECLARE_DERIVABLE_TYPE(MyVideoArea,my_video_area,MY,VIDEO_AREA,GtkDrawingArea);

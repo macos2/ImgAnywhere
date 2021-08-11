@@ -6,7 +6,8 @@
  */
 
 #include "ImgTool.h"
-
+#undef	MIN
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
 
 void img_argb_to_gray(uint8_t *argb_img, uint8_t *gray_img,
 		uint32_t w,uint32_t h, MeanOpt mean) {
@@ -111,7 +112,7 @@ void img_rank(uint8_t *in, uint8_t *out,
 	uint8_t *d=out;
 	uint32_t i=w_byte*h;
 	if(rank==0)rank=1;
-	uint8_t u=256/rank;
+	uint8_t u=255/rank;
 	while(i){
 		*d=*s-*s%u;
 		d++;
@@ -141,6 +142,7 @@ void img_error_diffusion(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t 
 			}
 		}
 	}
+
 
 void img_edge_detect(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t pixel_size){
 	uint32_t i,j;

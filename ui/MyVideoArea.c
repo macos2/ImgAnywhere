@@ -112,10 +112,10 @@ gboolean my_video_area_draw_area (cairo_t *cr, MyVideoArea *self) {
 
     //draw the all the area label
     if (area->describe != NULL) {
-      text = g_strdup_printf ("%s-%s", area->label, area->describe);
+      text = g_strdup_printf ("%d %s-%s",area->id,area->label, area->describe);
     }
     else {
-      text = g_strdup_printf ("%s", area->label);
+      text = g_strdup_printf ("%d %s",area->id,area->label);
     }
     cairo_set_font_size (cr, 12.);
     cairo_text_extents (cr, text, &ex);
@@ -505,16 +505,17 @@ VideoBoxArea * my_video_area_add_area (MyVideoArea *self, gchar *label, gchar *d
   area->offsetY = y;
   area->w = w;
   area->describe = g_strdup (desribe);
+  area->id=priv->autoindex;
   cairo_matrix_init_rotate (&area->obj_mat, 0.);
   if (label == NULL) {
-    temp = g_strdup_printf ("%d", priv->autoindex);
+    temp = g_strdup_printf ("Area");
     area->label=temp;
-    priv->autoindex++;
   }
   else {
     area->label = g_strdup (label);
   }
   priv->area_list=g_list_append(priv->area_list, area);
+  priv->autoindex++;
   return area;
 }
 
