@@ -12,8 +12,9 @@
 #define	R_OK	4	/* Check for read permission */
 
 #include "PostProcess.h"
+#include "string_helper.h"
 
-PostProcessFunc get_post_process_func(PostCommon *post){
+PostProcessFunc post_get_process_func(PostCommon *post){
 	switch(post->post_type){
 	case POST_BW:
 		return post_bw;
@@ -53,10 +54,10 @@ PostProcessFunc get_post_process_func(PostCommon *post){
 	return NULL;
 }
 
-gboolean post_process(PostCommon *post,guint8 *data,gpointer *out){
+gboolean post_process(PostCommon *post,guint8 **data,gpointer *out){
 	gboolean ret=FALSE;
-	PostProcessFunc func=get_post_process_func(post);
-	ret=func(post,data,out);
+	PostProcessFunc func=post_get_process_func(post);
+	if(func!=NULL)ret=func(post,data,out);
 	return ret;
 }
 
@@ -64,7 +65,8 @@ void destroy_surf (guchar *pixels, cairo_surface_t *out){
 	cairo_surface_destroy(out);
 }
 
-GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t *surf){
+GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t **s){
+	cairo_surface_t *surf=*s;
 	if(surf==NULL)return NULL;
 	guint w,h,i;
 	guint8 rank=0;
@@ -74,6 +76,7 @@ GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t *surf){
 	PostARGBRemap *remap;
 	PostBitmap *bit;
 	PostResize *resize;
+	OutWindow *window;
 	gdouble rw,rh;
 	w=cairo_image_surface_get_width(surf);
 	h=cairo_image_surface_get_height(surf);
@@ -87,7 +90,9 @@ GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t *surf){
 	cairo_t *cr=cairo_create(out);
 	if(post->post_type==POST_RESIZE){
 		//resize the content and then paint to the surface.
-		post_resize(resize, surf, &out);
+		post_resize(resize, &surf, NULL);
+		out=cairo_surface_reference(surf);
+		*s=out;
 		//update w,h for create pixbuf.
 		w=resize->resize_w;
 		h=resize->resize_h;
@@ -110,7 +115,8 @@ GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t *surf){
 			cairo_set_source_rgb(cr,0,0,0);
 			cairo_fill(cr);
 			surf_rgba_to_gray_color(surf, bit->mean);
-			img_error_diffusion(cairo_image_surface_get_data(surf), data, w, h, 4, 1, &diff_332);
+			img_error_diffusion(cairo_image_surface_get_data(surf), data, w, h, 4, bit->gray_rank, &diff_332);
+			surf_rgba_to_bw_color(out,MEAN_NUM, bit->thresold);
 		}else if(bit->gray==GRAY_SIM_MUL_THRESOLD){
 			surf_rgba_to_gray_color(out, bit->mean);
 			img_rank(cairo_image_surface_get_data(out), cairo_image_surface_get_data(out), w*4, h, bit->gray_rank);
@@ -146,13 +152,16 @@ GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t *surf){
 		img_rank(data, data, w*4, h, rank);
 		break;
 	case POST_TRANSPARENT:
-		post_transparent(post, out, NULL);
+		post_transparent(post, &out, NULL);
 		break;
 	case POST_BW:
-		post_bw(post, out, NULL);
+		post_bw(post, &out, NULL);
 		break;
 	case OUT_WINDOWS:
-		out_windows(post, surf,NULL);
+		window=post;
+		if(window->display_widget==NULL)post_run(window);
+		out_windows(window, &surf,NULL);
+		//gtk_widget_queue_draw(window->display_widget);
 		break;
 	default:
 		break;
@@ -174,6 +183,67 @@ GdkPixbuf *post_preview(PostCommon *post,cairo_surface_t *surf){
 	return pixbuf;
 }
 
+void post_run(PostCommon *post){
+	PostBitmap *bitmap;
+	OutImgFile *image;
+	OutFile *file;
+	OutWindow *win;
+	GFile *f;
+	switch(post->post_type){
+	case POST_BITMAP:
+		bitmap=post;
+		bitmap->rank_index=0;
+		bitmap->rank_dir=1;
+		break;
+	case OUT_IMG_FILE:
+		image=post;
+		image->index=0;
+		break;
+	case OUT_WINDOWS:
+		win=post;
+		if(win->display_widget==NULL)create_display_widget(win);
+		break;
+	case OUT_FILE:
+		file=post;
+		f=g_file_new_for_path(file->filename);
+		if(f==NULL){
+			file->out=NULL;
+			return;
+		}
+		if(file->over_write)g_rmdir(file->filename);
+		file->out=g_file_append_to(f,G_FILE_CREATE_NONE,NULL,NULL);
+		g_object_unref(f);
+		break;
+	default :break;
+	}
+}
+
+void post_stop(PostCommon *post){
+	OutFile *file;
+	OutWindow *win;
+	GtkWindow *w;
+	switch(post->post_type){
+	case OUT_WINDOWS:
+		win=post;
+		if(win->display_widget!=NULL){
+			w=gtk_widget_get_toplevel(win->display_widget);
+			gtk_widget_destroy(w);
+			win->display_widget=NULL;
+		}
+		break;
+	case OUT_FILE:
+		file=post;
+		if(file->out!=NULL){
+			g_output_stream_close(file->out,NULL,NULL);
+			g_object_unref(file->out);
+			file->out=NULL;
+		}
+		break;
+	default :break;
+	}
+}
+
+
 void post_free(PostCommon *post){
 	OutFile *file;
 	OutImgFile *img;
@@ -182,9 +252,9 @@ void post_free(PostCommon *post){
 	g_free(post->name);
 	switch(post->post_type){
 	case OUT_FILE:
+		post_stop(post);
 		file=post;
 		g_free(file->filename);
-		g_object_unref(file->file);
 		g_free(file);
 		break;
 	case OUT_IMG_FILE:
@@ -205,24 +275,25 @@ void post_free(PostCommon *post){
 	return;
 }
 
-gboolean post_bw(PostBw *bw,cairo_surface_t *surf,gpointer *out){
+gboolean post_bw(PostBw *bw,cairo_surface_t **s,gpointer *out){
 	PostCommon *com=&bw->com;
+	cairo_surface_t *surf=*s;
 	cairo_surface_flush(surf);
 	surf_rgba_to_bw_color(surf, bw->mean,bw->thresold);
-	com->out_size=0;
 	return TRUE;
 }
 
-gboolean post_gray(PostGray *gray,cairo_surface_t *surf,gpointer *out){
+gboolean post_gray(PostGray *gray,cairo_surface_t **s,gpointer *out){
 	PostCommon *com=&gray->com;
+	cairo_surface_t *surf=*s;
 	cairo_surface_flush(surf);
 	surf_rgba_to_gray_color(surf, gray->mean);
-	com->out_size=0;
 	return TRUE;
 }
 
-gboolean post_rgb_fmt(PostRGBFmt *rgb_fmt,cairo_surface_t *surf,gpointer *out){
+gboolean post_rgb_fmt(PostRGBFmt *rgb_fmt,cairo_surface_t **s,gpointer *out){
 	PostCommon *com=&rgb_fmt->com;
+	cairo_surface_t *surf=*s;
 	guint32 w,h,*data=cairo_image_surface_get_data(surf);
 	w=cairo_image_surface_get_width(surf);
 	h=cairo_image_surface_get_height(surf);
@@ -233,33 +304,40 @@ gboolean post_rgb_fmt(PostRGBFmt *rgb_fmt,cairo_surface_t *surf,gpointer *out){
 	return TRUE;
 }
 
-gboolean post_argb_remap(PostARGBRemap *argbremap,cairo_surface_t *surf,gpointer *out){
+gboolean post_argb_remap(PostARGBRemap *argbremap,cairo_surface_t **s,gpointer *out){
 	PostCommon *com=&argbremap->com;
+	cairo_surface_t *surf=*s;
 	guint8 data=cairo_image_surface_get_data(surf);
 	guint32 w,h;
 	w=cairo_image_surface_get_width(surf);
 	h=cairo_image_surface_get_height(surf);
 	img_argb_remap(data, data, w, h, &argbremap->remap_weight);
 	cairo_surface_mark_dirty(surf);
-	com->out_size=0;
 	return TRUE;
 }
 
-gboolean post_diffuse(PostDiffuse *diffuse,cairo_surface_t *surf,gpointer *out){
+gboolean post_diffuse(PostDiffuse *diffuse,cairo_surface_t **s,gpointer *out){
 	PostCommon *com=&diffuse->com;
+	cairo_surface_t *surf=*s;
+
 	guint8 *data=cairo_image_surface_get_data(surf);
+
 	guint32 w,h;
 	w=cairo_image_surface_get_width(surf);
 	h=cairo_image_surface_get_height(surf);
+	cairo_surface_t *osurf=cairo_image_surface_create(cairo_image_surface_get_format(surf),w,h);
+	guint8 *odata=cairo_image_surface_get_data(osurf);
 	guint8 pixal_size=cairo_image_surface_get_stride(surf)/w;
-	img_error_diffusion(data, data, w, h, pixal_size, diffuse->rank, &diffuse->radio);
-	cairo_surface_mark_dirty(surf);
-	com->out_size=0;
+	img_error_diffusion(data, odata, w, h, pixal_size, diffuse->rank, &diffuse->radio);
+	cairo_surface_mark_dirty(osurf);
+	cairo_surface_destroy(surf);
+	*s=osurf;
 	return TRUE;
 }
 
-gboolean post_transparent(PostTransparent *transparent,cairo_surface_t *surf,gpointer *out){
+gboolean post_transparent(PostTransparent *transparent,cairo_surface_t **s,gpointer *out){
 	PostCommon *com=&transparent->com;
+	cairo_surface_t *surf=*s;
 	gdouble d=0;
 	guint32 size, i;
 	guint8 *p=cairo_image_surface_get_data(surf);
@@ -283,13 +361,14 @@ gboolean post_transparent(PostTransparent *transparent,cairo_surface_t *surf,gpo
 		p+=4;
 	}
 	cairo_surface_mark_dirty(surf);
-	com->out_size=0;
 	return TRUE;
 }
 
-gboolean post_bitmap(PostBitmap *bitmap,cairo_surface_t *surf,gpointer *out){
+gboolean post_bitmap(PostBitmap *bitmap,cairo_surface_t **s,gpointer *out){
 	PostCommon *com=&bitmap->com;
-	cairo_surface_t *argb=NULL,*gray=NULL,*a1=NULL;
+	guint8 thresold=bitmap->thresold;
+	cairo_surface_t *surf=*s;
+	cairo_surface_t *argb=NULL,*gray=NULL,*a1=NULL,*temp;
 	guint32 w,h;
 	w=cairo_image_surface_get_width(surf);
 	h=cairo_image_surface_get_height(surf);
@@ -300,10 +379,23 @@ gboolean post_bitmap(PostBitmap *bitmap,cairo_surface_t *surf,gpointer *out){
 		gray=cairo_image_surface_create(CAIRO_FORMAT_A8,w,h);
 		img_argb_to_gray(cairo_image_surface_get_data(argb), cairo_image_surface_get_data(gray), w, h, MEAN_NUM);
 		cairo_surface_mark_dirty(gray);
+		if(bitmap->gray==GRAY_SIM_DIFFUSE){
+			temp=cairo_image_surface_create(CAIRO_FORMAT_A8,w,h);
+			img_error_diffusion(cairo_image_surface_get_data(gray), cairo_image_surface_get_data(temp), w, h, 1, bitmap->gray_rank, &diff_332);
+			cairo_surface_destroy(gray);
+			gray=temp;
+			cairo_surface_mark_dirty(gray);
+		}
 	case CAIRO_FORMAT_A8:
 		if(gray==NULL)gray=cairo_surface_reference(surf);
 		a1=cairo_image_surface_create(CAIRO_FORMAT_A1,w,h);
-		img_gray_to_bit(cairo_image_surface_get_data(gray), cairo_image_surface_get_data(a1), w, h, bitmap->thresold);
+		if(bitmap->gray==GRAY_SIM_MUL_THRESOLD){
+			thresold=bitmap->thresold/bitmap->gray_rank;
+			thresold*=bitmap->rank_index+1;
+			bitmap->rank_index+=bitmap->rank_dir;
+			if(bitmap->rank_index>bitmap->gray_rank||bitmap->rank_index==0)bitmap->rank_dir=bitmap->rank_dir>0?-1:1;
+		}
+		img_gray_to_bit(cairo_image_surface_get_data(gray), cairo_image_surface_get_data(a1), w, h,  thresold);
 		cairo_surface_mark_dirty(a1);
 	case CAIRO_FORMAT_A1:
 		if(a1==NULL)a1=cairo_surface_reference(surf);
@@ -319,9 +411,10 @@ gboolean post_bitmap(PostBitmap *bitmap,cairo_surface_t *surf,gpointer *out){
 	return TRUE;
 }
 
-gboolean post_resize(PostResize *resize,cairo_surface_t *surf,gpointer *out){
+gboolean post_resize(PostResize *resize,cairo_surface_t **s,gpointer *out){
 	gdouble wr,hr;
 	guint32 w,h;
+	cairo_surface_t *surf=*s;
 	if(surf==NULL)return FALSE;
 	w=cairo_image_surface_get_width(surf);
 	h=cairo_image_surface_get_height(surf);
@@ -344,82 +437,81 @@ gboolean post_resize(PostResize *resize,cairo_surface_t *surf,gpointer *out){
 	if(wr>1.||hr>1.)cairo_pattern_set_filter(cairo_get_source(cr),CAIRO_FILTER_NEAREST);
 	cairo_paint(cr);
 	cairo_destroy(cr);
-	if(*out!=NULL)g_free(*out);
-	*out=osurf;
+	cairo_surface_destroy(surf);
+	*s=osurf;
 	return TRUE;
 }
 
 void logo_draw_cb(MyLogo *self,cairo_t *cr){
+	guint32 w,h;
 	cairo_surface_t *surf=g_object_get_data(self,"surf");
 	if(surf==NULL)return;
+	w=cairo_image_surface_get_width(surf);
+	h=cairo_image_surface_get_height(surf);
+	gtk_window_resize(gtk_widget_get_toplevel(self),w,h);
 	cairo_set_source_surface(cr,surf,0,0);
 	cairo_paint(cr);
 }
 
-void close_window_cb(GtkWidget *button,MyLogo *logo){
-	OutWindow *window;
+void close_window_cb(GtkWidget *widget,MyLogo *logo){
+	OutWindow *post;
 	cairo_surface_t *surf=g_object_get_data(logo,"surf");
-	gpointer deleted=g_object_get_data(logo,"deleted");//检测后处理是否被删除，非NULL则已经删除。
+	gpointer deleted=g_object_get_data(logo,"deleted");//检测后处理是否被删除，NULL则还没有删除。
 	GtkWindow *win=gtk_widget_get_toplevel(logo);
 	if(surf!=NULL)cairo_surface_destroy(surf);
 	if(deleted==NULL){
-		window=g_object_get_data(logo,"post");
-		window->display_widget=NULL;
+		post=g_object_get_data(logo,"post");
+		post->display_widget=NULL;//通知后处理窗口已经关闭
 	}
-	gtk_widget_destroy(win);
 }
 
-gboolean out_windows(OutWindow *window,cairo_surface_t *surf,gpointer *out){
+void create_display_widget(OutWindow *post) {
+	GtkWindow *win=gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_decorated(win,FALSE);
+	MyLogo *logo=my_logo_new(win, TRUE);
+	gtk_container_add(win,logo);
+	post->display_widget=logo;
+	g_signal_connect(logo,"logo_draw",logo_draw_cb,NULL);
+	GtkButton *button=gtk_button_new_from_icon_name("window-close-symbolic",GTK_ICON_SIZE_SMALL_TOOLBAR);
+	gtk_button_set_relief(button, GTK_RELIEF_NONE);
+	my_logo_pack(logo, button, 0, 0, 32, 32, FALSE);
+	g_signal_connect_swapped(button,"clicked",gtk_widget_destroy,win);
+	g_signal_connect(win,"destroy",close_window_cb,post->display_widget);
+	gtk_widget_show_all(win);
+}
+
+gboolean out_windows(OutWindow *window,cairo_surface_t **s,gpointer *out){
+	cairo_surface_t *surf;
 	if(surf==NULL)return FALSE;
 	guint32 w,h;
-	w=cairo_image_surface_get_width(surf);
-	h=cairo_image_surface_get_height(surf);
-	if(window->display_widget==NULL){
-		GtkWindow *win=gtk_window_new(GTK_WINDOW_TOPLEVEL);
-		gtk_window_set_decorated(win,FALSE);
-		MyLogo *logo=my_logo_new(win, TRUE);
-		gtk_container_add(win,logo);
-		window->display_widget=logo;
-		g_signal_connect(logo,"logo_draw",logo_draw_cb,NULL);
-
-		GtkButton *button=gtk_button_new_from_icon_name("window-close-symbolic",GTK_ICON_SIZE_SMALL_TOOLBAR);
-		gtk_button_set_relief(button, GTK_RELIEF_NONE);
-		my_logo_pack(logo, button, 0, 0, 32, 32, FALSE);
-		g_signal_connect(button,"clicked",close_window_cb,window->display_widget);
-		gtk_window_resize(win,w,h);
-		gtk_widget_show_all(win);
-	}
-	if(window->display_widget!=NULL){
-		cairo_surface_t *s=g_object_get_data(window->display_widget,"surf");
-		if(s!=NULL)cairo_surface_destroy(s);
-		g_object_set_data(window->display_widget,"surf",cairo_surface_reference(surf));
-		g_object_set_data(window->display_widget,"post",window);
-		gtk_widget_queue_draw(window->display_widget);
-		gtk_window_resize(gtk_widget_get_toplevel(window->display_widget),w,h);
-	}
-	window->com.out_size=0;
+	w=cairo_image_surface_get_width(*s);
+	h=cairo_image_surface_get_height(*s);
+	if(window->display_widget==NULL)return FALSE;
+	surf=g_object_get_data(window->display_widget,"surf");
+	if(surf!=NULL)cairo_surface_destroy(surf);
+	g_object_set_data(window->display_widget,"surf",cairo_surface_reference(*s));
+	g_object_set_data(window->display_widget,"post",window);
+	gtk_widget_queue_draw(window->display_widget);
 	return TRUE;
 }
 
-gboolean out_file(OutFile *file,cairo_surface_t *surf,gpointer *out){
+gboolean out_file(OutFile *file,cairo_surface_t **s,gpointer *out){
 	gchar *str;
 	GString *note;
 	gsize len;
 	guint8 *data=*out;
 	if(data==NULL)return FALSE;
-	if(file->file==NULL){
-			file->file=g_file_new_for_path(file->filename);
-	}
-	if(file->file==NULL)return FALSE;
-	GOutputStream *o=g_file_append_to(file->file,G_FILE_CREATE_NONE,NULL,NULL);
+	if(file->out==NULL)return FALSE;
+	GOutputStream *o=file->out;
 	if(file->c_source){
 		note=g_string_new("");
-		g_string_append_printf(note,"//id:\tname:%s\twidth:%d\theight:%d\tsize:%d\n",file->com.area_id,file->com.name,file->com.w,file->com.h,file->com.out_size);
+		g_string_append_printf(note,"\n//id:%d\tname:%s\twidth:%d\theight:%d\tsize:%d\tframerate:%d/%d\n",file->com.area_id,file->com.name,file->com.w,file->com.h,file->com.out_size,file->com.framerate_n,file->com.framerate_d);
 		if(file->head_output){
-			g_string_append_printf(note,"0x%02x,0x%02x,0x%02x,0x%02x,//id=0x%08x\n",file->com.area_id&0xff,(file->com.area_id>>8)&0xff,(file->com.area_id>>16)&0xff,(file->com.area_id>>24)&0xff,file->com.area_id);
-			g_string_append_printf(note,"0x%02x,0x%02x,0x%02x,0x%02x,//width=0x%08x\n",file->com.w&0xff,(file->com.w>>8)&0xff,(file->com.w>>16)&0xff,(file->com.w>>24)&0xff,file->com.w);
-			g_string_append_printf(note,"0x%02x,0x%02x,0x%02x,0x%02x,//height=0x%08x\n",file->com.h&0xff,(file->com.h>>8)&0xff,(file->com.h>>16)&0xff,(file->com.h>>24)&0xff,file->com.h);
-			g_string_append_printf(note,"0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,//size=0x%016lx\n",file->com.out_size&0xff,(file->com.out_size>>8)&0xff,(file->com.out_size>>16)&0xff,(file->com.out_size>>24)&0xff,(file->com.out_size>>32)&0xff,(file->com.out_size>>40)&0xff,(file->com.out_size>>48)&0xff,(file->com.out_size>>56)&0xff,file->com.out_size);
+			g_string_append_printf(note,"\t0x%02x,0x%02x,0x%02x,0x%02x,//id=0x%08x\n",file->com.area_id&0xff,(file->com.area_id>>8)&0xff,(file->com.area_id>>16)&0xff,(file->com.area_id>>24)&0xff,file->com.area_id);
+			g_string_append_printf(note,"\t0x%02x,0x%02x,0x%02x,0x%02x,//width=0x%08x\n",file->com.w&0xff,(file->com.w>>8)&0xff,(file->com.w>>16)&0xff,(file->com.w>>24)&0xff,file->com.w);
+			g_string_append_printf(note,"\t0x%02x,0x%02x,0x%02x,0x%02x,//height=0x%08x\n",file->com.h&0xff,(file->com.h>>8)&0xff,(file->com.h>>16)&0xff,(file->com.h>>24)&0xff,file->com.h);
+			g_string_append_printf(note,"\t0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,//size=0x%016lx\n",file->com.out_size&0xff,(file->com.out_size>>8)&0xff,(file->com.out_size>>16)&0xff,(file->com.out_size>>24)&0xff,(file->com.out_size>>32)&0xff,(file->com.out_size>>40)&0xff,(file->com.out_size>>48)&0xff,(file->com.out_size>>56)&0xff,file->com.out_size);
+			g_string_append_printf(note,"\t0x%02x,0x%02x,//framerate=0x%02x/0x%02x",file->com.framerate_n,file->com.framerate_d,file->com.framerate_n,file->com.framerate_d);
 		}
 		len=img_data_to_c_array_string(data, file->com.out_size, 16,note->str , &str);
 		g_output_stream_write(o,str,len,NULL,NULL);
@@ -427,12 +519,13 @@ gboolean out_file(OutFile *file,cairo_surface_t *surf,gpointer *out){
 		g_free(str);
 	}else if(file->asm_source){
 		note=g_string_new("");
-		g_string_append_printf(note,";id:\tname:%s\twidth:%d\theight:%d\tsize:%d\n",file->com.area_id,file->com.name,file->com.w,file->com.h,file->com.out_size);
+		g_string_append_printf(note,"\n;id:%d\tname:%s\twidth:%d\theight:%d\tsize:%d\tframerate:%d/%d\n",file->com.area_id,file->com.name,file->com.w,file->com.h,file->com.out_size,file->com.framerate_n,file->com.framerate_d);
 		if(file->head_output){
-			g_string_append_printf(note,"%02XH,%02XH,%02XH,%02XH,;id=0x%08x\n",file->com.area_id&0xff,(file->com.area_id>>8)&0xff,(file->com.area_id>>16)&0xff,(file->com.area_id>>24)&0xff,file->com.area_id);
-			g_string_append_printf(note,"%02XH,%02XH,%02XH,%02XH,;width=0x%08x\n",file->com.w&0xff,(file->com.w>>8)&0xff,(file->com.w>>16)&0xff,(file->com.w>>24)&0xff,file->com.w);
-			g_string_append_printf(note,"%02XH,%02XH,%02XH,%02XH,;height=0x%08x\n",file->com.h&0xff,(file->com.h>>8)&0xff,(file->com.h>>16)&0xff,(file->com.h>>24)&0xff,file->com.h);
-			g_string_append_printf(note,"%02XH,%02XH,%02XH,%02XH,%02XH,%02XH,%02XH,%02XH,;size=0x%016lx\n",file->com.out_size&0xff,(file->com.out_size>>8)&0xff,(file->com.out_size>>16)&0xff,(file->com.out_size>>24)&0xff,(file->com.out_size>>32)&0xff,(file->com.out_size>>40)&0xff,(file->com.out_size>>48)&0xff,(file->com.out_size>>56)&0xff,file->com.out_size);
+			g_string_append_printf(note,"\tDB %02XH,%02XH,%02XH,%02XH,;id=0x%08x\n",file->com.area_id&0xff,(file->com.area_id>>8)&0xff,(file->com.area_id>>16)&0xff,(file->com.area_id>>24)&0xff,file->com.area_id);
+			g_string_append_printf(note,"\tDB %02XH,%02XH,%02XH,%02XH,;width=0x%08x\n",file->com.w&0xff,(file->com.w>>8)&0xff,(file->com.w>>16)&0xff,(file->com.w>>24)&0xff,file->com.w);
+			g_string_append_printf(note,"\tDB %02XH,%02XH,%02XH,%02XH,;height=0x%08x\n",file->com.h&0xff,(file->com.h>>8)&0xff,(file->com.h>>16)&0xff,(file->com.h>>24)&0xff,file->com.h);
+			g_string_append_printf(note,"\tDB %02XH,%02XH,%02XH,%02XH,%02XH,%02XH,%02XH,%02XH,;size=0x%016lx\n",file->com.out_size&0xff,(file->com.out_size>>8)&0xff,(file->com.out_size>>16)&0xff,(file->com.out_size>>24)&0xff,(file->com.out_size>>32)&0xff,(file->com.out_size>>40)&0xff,(file->com.out_size>>48)&0xff,(file->com.out_size>>56)&0xff,file->com.out_size);
+			g_string_append_printf(note,"\tDB %02XH,%02XH,;framerate=0x%02x/0x%02x",file->com.framerate_n,file->com.framerate_d,file->com.framerate_n,file->com.framerate_d);
 		}
 		len=img_data_to_asm_db_string(data, file->com.out_size, 16,note->str, &str);
 		g_output_stream_write(o,str,len,NULL,NULL);
@@ -444,29 +537,28 @@ gboolean out_file(OutFile *file,cairo_surface_t *surf,gpointer *out){
 			g_output_stream_write(o,&file->com.w,sizeof(guint32),NULL,NULL);
 			g_output_stream_write(o,&file->com.h,sizeof(guint32),NULL,NULL);
 			g_output_stream_write(o,&file->com.out_size,sizeof(guint64),NULL,NULL);
+			g_output_stream_write(o,&file->com.framerate_n,sizeof(guint8),NULL,NULL);
+			g_output_stream_write(o,&file->com.framerate_d,sizeof(guint8),NULL,NULL);
 		}
 		g_output_stream_write(o,data,file->com.out_size,NULL,NULL);
 	}
-	g_output_stream_close(o,NULL,NULL);
-	file->com.out_size=0;
+//	g_output_stream_close(o,NULL,NULL);
+//	g_object_unref(o);
 	return TRUE;
 }
 
-gboolean out_img_file(OutImgFile *img,cairo_surface_t *surf,gpointer *out){
+gboolean out_img_file(OutImgFile *img,cairo_surface_t **s,gpointer *out){
+	cairo_surface_t *surf=*s;
 	if(surf==NULL)return FALSE;
-	gchar **s;
-	gchar **strv=g_strsplit(img->name_fmt, "%d", -1);
-	GString *name=g_string_new("");
-	s=strv;
-	while(*s!=NULL){
-		g_string_append(name,*s);
-		g_string_append_printf(name,"%d",img->index);
-		s++;
-	}
+	gchar *num=g_strdup_printf("%d",img->index);
+	gchar *id=g_strdup_printf("%d",img->com.area_id);
+	gchar *name=g_strdup_printf("%s%s%s",img->directory,G_DIR_SEPARATOR_S,img->name_fmt);
+	string_replace(&name, "%d",num );
+	string_replace(&name, "%a", id);
 	img->index++;
-	g_strfreev(strv);
-	cairo_surface_write_to_png(surf,name->str);
-	g_string_free(name,TRUE);
-	img->com.out_size=0;
+	cairo_surface_write_to_png(surf,name);
+	g_free(name);
+	g_free(id);
+	g_free(num);
 	return TRUE;
 }

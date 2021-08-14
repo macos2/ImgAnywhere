@@ -97,10 +97,10 @@ uint64_t img_data_to_string(uint8_t *data,char *note,uint64_t length,uint32_t co
   uint64_t l=0;
   char tmp_name[]="tmpXXXXXX";
   FILE *f=fdopen(mkstemp(tmp_name),"w+");
-  l+=fprintf(f,"%s\r\n",note);
+  l+=fprintf(f,"%s",note);
   for(i=0;i<length;i++){
     if(i%col==0){
-      l+=fprintf(f,"\r\n");
+      l+=fprintf(f,"\n");
       if(row_start!=NULL)l+=fprintf(f,"%s",row_start);
     }
     l+=fprintf(f,fmt,data[i]);
@@ -138,7 +138,7 @@ uint64_t img_data_to_asm_db_string(uint8_t *data,uint64_t length,uint32_t col,ch
   }else{
     sprintf(n,"%s",note);
   }
-  l= img_data_to_string(data, n, length, col, "DB ", "%02XH", ",", res);
+  l= img_data_to_string(data, n, length, col, "\tDB ", "%02XH", ",", res);
   free(n);
   return l;
 }

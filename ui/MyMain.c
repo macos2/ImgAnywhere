@@ -17,6 +17,7 @@ typedef struct {
 } AreaInfo;
 
 typedef struct {
+	guint8 framerate_n,framerate_d;
 	GtkAdjustment *pos_x, *pos_y, *progress, *rotate, *size_h, *size_w, *volume,
 			*scale, *play_speed;
 	GtkScrolledWindow *video_box;
@@ -24,7 +25,7 @@ typedef struct {
 	GtkTreeView *post_tree_view;
 	GtkPaned *paned;
 	AreaInfo *current_area;
-	GtkToggleButton *size_radio_lock, *full_screen;
+	GtkToggleButton *size_radio_lock, *full_screen,*run_post;
 	GtkEntry *area_label, *open_uri;
 	GHashTable *area_table;
 	gdouble r_w_h;
@@ -35,7 +36,12 @@ typedef struct {
 	GtkMenu *add_post_menu,*post_tree_view_menu;
 	GtkImage *bw,*diff,*file,*gray,*remap,*rgbfmt,*scan,*transparent,*window,*image_file,*resize,*scan_preview;
 	GtkDialog *open_uri_dialog;
-	GThread *thread;
+	GHashTable *thread_table;
+//	GThread *thread;
+//	GAsyncQueue *queue;
+	guint64 duration;
+	guint64 position;
+	gboolean image_refresh;
 	//post process setting widget below
 	GtkDialog *out_file_dialog,*out_image_file_dialog;
 	GtkDialog *post_bitmap_dialog,*post_bw_dialog,*post_diffuse_dialog,*post_gray_dialog,*post_resize_dialog,*post_rgb_fmt_dialog,*post_argb_remap_dialog,*post_transparent_dialog;
@@ -86,19 +92,23 @@ typedef struct {
 
 typedef struct {
 	gchar *uri;
-	GList *area;
-	GList *post_list;
 	GMutex m;
 	gboolean stop;
-	gboolean screen_src;
-	guint64 duration;
-	guint64 position;
+	gboolean start;
+	GAsyncQueue *queue;
+	GThread *thread;
+//	gboolean screen_src;
+	guint64 *duration;
+	guint64 *position;
 	gfloat framerate;
+	GHashTable *areatable;
 }PostThreadData;
 
+void run_post_cb(GtkToggleButton *button,MyMain *self);
+
 void post_thread_data_free(PostThreadData *data){
-	g_list_free(data->area);
-	g_list_free(data->post_list);
+	g_async_queue_unref(data->queue);
+	g_hash_table_unref(data->areatable);
 	g_free(data->uri);
 	g_free(data);
 }
@@ -165,6 +175,10 @@ void area_select(MyVideoArea *video_area, VideoBoxArea *area, MyMain *self) {
 	AreaInfo *info = g_hash_table_lookup(priv->area_table, area);
 	gtk_tree_view_set_model(priv->post_tree_view, info->process_list);
 	post_view_refresh(self);
+
+	g_signal_handlers_disconnect_by_data(priv->run_post,self);
+	gtk_toggle_button_set_active(priv->run_post,g_hash_table_contains(priv->thread_table,info));
+	g_signal_connect(priv->run_post,"toggled",run_post_cb,self);
 }
 
 void area_move(MyVideoArea *video_area, VideoBoxArea *area, gdouble *x,
@@ -347,10 +361,8 @@ void play_speed_cb(GtkSpinButton *button, MyMain *self) {
 	GstEvent *event = NULL;
 	gdouble speed = gtk_spin_button_get_value(button);
 	gst_element_query_position(priv->pline, GST_FORMAT_TIME, &pos);
-	if (speed == 0.) {
-		gst_element_set_state(priv->pline, GST_STATE_PAUSED);
-		return;
-	} else if (speed > 0.) {
+	if (speed == 0.) speed=0.001;
+	if (speed > 0.) {
 		event = gst_event_new_seek(speed, GST_FORMAT_TIME,
 				GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE, GST_SEEK_TYPE_SET,
 				pos, GST_SEEK_TYPE_END, 0);
@@ -395,16 +407,17 @@ void size_fit_cb(GtkButton *button, MyMain *self) {
 	GET_PRIV;
 	if (priv->current_area == NULL)
 		return;
+	gst_element_set_state(priv->pline,GST_STATE_PAUSED);
+	priv->state=GST_STATE_PAUSED;
 	GdkPixbuf *pixbuf = my_video_area_get_pixbuf(priv->video_area);
 	if (pixbuf == NULL)
 		return;
 	gint w = gdk_pixbuf_get_width(pixbuf);
 	gint h = gdk_pixbuf_get_height(pixbuf);
-	priv->current_area->area->w = w * 1.;
-	priv->current_area->area->h = h * 1.;
+	gtk_adjustment_set_value(priv->size_w,w*1.);
+	gtk_adjustment_set_value(priv->size_h,h*1.);
 	gtk_widget_queue_draw(priv->video_area);
 	gtk_widget_queue_draw(priv->preview_area);
-	update_area_info(priv->current_area->area, self);
 }
 
 void align_center_cb(GtkButton *button, MyMain *self) {
@@ -502,7 +515,13 @@ void volume_changed_cb(GtkScaleButton *button, MyMain *self) {
 
 void play_cb(GtkButton *button, MyMain *self) {
 	GET_PRIV;
-	gst_element_set_state(priv->pline, GST_STATE_PLAYING);
+	if(priv->framerate_n==0){//picture
+		gst_element_set_state(priv->pline,GST_STATE_READY);
+		gst_element_set_state(priv->pline, GST_STATE_PLAYING);
+		priv->image_refresh=FALSE;
+	}else{
+		gst_element_set_state(priv->pline, GST_STATE_PLAYING);
+	}
 	priv->state = GST_STATE_PLAYING;
 }
 
@@ -549,6 +568,7 @@ void open_file_cb(GtkMenuItem *menuitem, MyMain *self) {
 		}
 	}
 	gtk_widget_destroy(dialog);
+	priv->image_refresh=FALSE;
 }
 
 void open_uri_cb(GtkMenuItem *menuitem, MyMain *self) {
@@ -564,12 +584,13 @@ void open_uri_cb(GtkMenuItem *menuitem, MyMain *self) {
 		gst_element_set_state(priv->pline, priv->state);
 	}
 	gtk_widget_hide(priv->open_uri_dialog);
+	priv->image_refresh=FALSE;
 }
 
 void open_screen_cb(GtkMenuItem *menuitem, MyMain *self) {
 	GET_PRIV;
 	g_print("open screen");
-
+	priv->image_refresh=FALSE;
 }
 
 void add_area_cb(GtkMenuItem *menuitem, MyMain *self) {
@@ -972,7 +993,7 @@ void post_view_refresh(	MyMain *self) {
 	if(surf==NULL)return;
 	while(1){
 		gtk_tree_model_get(priv->current_area->process_list,&iter,col_post,&post,col_preview_pixbuf,&old,-1);
-		new=post_preview(post, surf);
+		new=post_preview(post, &surf);
 		gtk_list_store_set(priv->current_area->process_list,&iter,col_preview_pixbuf,new,-1);
 		cairo_surface_destroy(surf);
 		if(old!=NULL)g_object_unref(old);
@@ -1000,7 +1021,7 @@ void full_screen(MyMain *self) {
 }
 
 void full_screen_toggled_cb(GtkToggleButton *togglebutton, MyMain *self) {
-	if (gtk_cell_renderer_toggle_get_active(togglebutton)) {
+	if (gtk_toggle_button_get_active(togglebutton)) {
 		full_screen(self);
 	}
 }
@@ -1040,140 +1061,233 @@ void del_post_cb(GtkWidget *widget,MyMain *self){
 	g_list_free_full(list_row,gtk_tree_row_reference_free);
 }
 
-void run_post_thread_uridecode_add_pad (GstElement* decodebin,
-                                     GstPad* srcpad,
-                                     GstElement *sink){
-	GstPad *sinkpad=gst_element_get_static_pad(sink,"sink");
-	gst_pad_link(srcpad,sinkpad);
-	gst_object_unref(sinkpad);
-}
-
+//void run_post_thread_uridecode_add_pad (GstElement* decodebin,
+//                                     GstPad* srcpad,
+//                                     GstElement *sink){
+//	GstPad *sinkpad=gst_element_get_static_pad(sink,"sink");
+//	gst_pad_link(srcpad,sinkpad);
+//	gst_object_unref(sinkpad);
+//}
+//
+//
+//gpointer run_post_thread(PostThreadData *data){
+//	g_print("thread start\n");
+//	GstBus *bus;
+//	GstElement *src=NULL,*sink,*convert,*queue;
+//	GstPipeline *line;
+//	GstMessage *msg;
+//	GstStructure *str,*cstr;
+//	GdkPixbuf *pixbuf;
+//	cairo_surface_t *surf;
+//	gchar *name;
+//	gchar *debug=NULL;
+//	GError *err=NULL;
+//	GList *l,*pl;
+//	VideoBoxArea *area;
+//	guint id=0;
+//	gboolean run;
+//	GstPad *pad;
+//	GstCaps *cap;
+//	GValue *value=NULL;
+//	gint de,ne;
+//
+//	if(data->screen_src){
+//		src=gst_element_factory_make("ximagesrc","src");
+//	}else{
+//		if(data->uri!=NULL){
+//			src=gst_element_factory_make("uridecodebin", "src");
+//			g_object_set(src,"uri",data->uri,NULL);
+//		}
+//	}
+//	if(src==NULL){
+//		post_thread_data_free(data);
+//		return NULL;
+//	}
+//	line=gst_pipeline_new("line");
+//	sink=gst_element_factory_make("gdkpixbufsink","sink");
+//	convert=gst_element_factory_make("autovideoconvert","convert");
+//	queue=gst_element_factory_make("queue","queue");
+//	gst_bin_add_many(line,src,convert,queue,sink,NULL);
+//	gst_element_link_many(convert,queue,sink,NULL);
+//	g_signal_connect(src,"pad-added",run_post_thread_uridecode_add_pad,convert);
+//	pad=gst_element_get_static_pad(sink,"sink");
+//	bus=gst_pipeline_get_bus(line);
+//	run=TRUE;
+//	gst_element_set_state(line,GST_STATE_PLAYING);
+//	while(run){
+//		msg=gst_bus_timed_pop_filtered(bus,GST_CLOCK_TIME_NONE,GST_MESSAGE_ELEMENT|GST_MESSAGE_EOS|GST_MESSAGE_ERROR);
+//		if(msg==NULL)break;
+//		switch(msg->type){
+//		case GST_MESSAGE_ELEMENT:
+//			str=gst_message_get_structure(msg);
+//			if(gst_structure_has_field(str, "pixbuf")){
+//				gst_structure_get(str,"pixbuf",GDK_TYPE_PIXBUF,&pixbuf,NULL);
+//				name=g_strdup_printf("test-%d.jpg",id);
+//				id++;
+//				//gdk_pixbuf_save(pixbuf,name,"jpeg",NULL,"quality", "90", NULL);
+//				g_free(name);
+//				g_object_unref(pixbuf);
+//			}
+//			//update time info
+//			g_mutex_lock(&data->m);
+//			cap=gst_pad_get_current_caps(pad);
+//			name=gst_caps_to_string(cap);
+//			g_print("%s\n",name);
+//			g_free(name);
+//			cstr=gst_caps_get_structure(cap,0);
+////			value=gst_structure_get_value (cstr,"framerate");
+////			if(value!=NULL){
+////				g_print("framerate:%d/%d",gst_value_get_fraction_numerator(value),gst_value_get_fraction_denominator(value));
+////			}
+//			gst_structure_get(cstr,"framerate",GST_TYPE_FRACTION,&ne,&de,NULL);
+//			data->framerate=ne/(de*1.0);
+//			gst_caps_unref(cap);
+//			gst_element_query_duration(src, GST_FORMAT_TIME, &data->duration);
+//			gst_element_query_position(src,GST_FORMAT_TIME,&data->position);
+//			g_mutex_unlock(&data->m);
+//			g_print("%d\n",data->position/GST_SECOND);
+//			if(data->duration==-1)run=FALSE;//it is a image
+//			break;
+//		case GST_MESSAGE_ERROR:
+//			gst_message_parse_error(msg,&err,&debug);
+//			g_printerr("Error:%s\nDebug:%s\n",err->message,debug);
+//			g_error_free(err);
+//			g_free(debug);
+//		case GST_MESSAGE_EOS:
+//		default:
+//			run=FALSE;
+//			break;
+//		}
+//		//if(id>10)run=FALSE;
+//		gst_message_unref(msg);
+//	}
+//	gst_element_set_state(line,GST_STATE_NULL);
+//	gst_object_unref(pad);
+//	gst_object_unref(line);
+//	post_thread_data_free(data);
+//	g_print("thread end\n");
+//	return NULL;
+//}
 
 gpointer run_post_thread(PostThreadData *data){
-	g_print("thread start\n");
-	GstBus *bus;
-	GstElement *src=NULL,*sink,*convert,*queue;
-	GstPipeline *line;
-	GstMessage *msg;
-	GstStructure *str,*cstr;
+	cairo_t *cr;
+	guint8 *out_data=NULL;
 	GdkPixbuf *pixbuf;
-	cairo_surface_t *surf;
-	gchar *name;
-	gchar *debug=NULL;
-	GError *err=NULL;
-	GList *l,*pl;
-	VideoBoxArea *area;
-	guint id=0;
-	gboolean run;
-	GstPad *pad;
-	GstCaps *cap;
-	GValue *value=NULL;
-	gint de,ne;
-
-	if(data->screen_src){
-		src=gst_element_factory_make("ximagesrc","src");
-	}else{
-		if(data->uri!=NULL){
-			src=gst_element_factory_make("uridecodebin", "src");
-			g_object_set(src,"uri",data->uri,NULL);
-		}
-	}
-	if(src==NULL){
-		post_thread_data_free(data);
-		return NULL;
-	}
-	line=gst_pipeline_new("line");
-	sink=gst_element_factory_make("gdkpixbufsink","sink");
-	convert=gst_element_factory_make("autovideoconvert","convert");
-	queue=gst_element_factory_make("queue","queue");
-	gst_bin_add_many(line,src,convert,queue,sink,NULL);
-	gst_element_link_many(convert,queue,sink,NULL);
-	g_signal_connect(src,"pad-added",run_post_thread_uridecode_add_pad,convert);
-	pad=gst_element_get_static_pad(sink,"sink");
-	bus=gst_pipeline_get_bus(line);
-	run=TRUE;
-	gst_element_set_state(line,GST_STATE_PLAYING);
+	cairo_surface_t *post_surf;
+	PostCommon *post,*next_post;
+	AreaInfo *area;
+	GList *al,*pl,*area_list,*post_list;
+	gboolean run=TRUE,ret;
+	GThread *thread=g_thread_self ();
 	while(run){
-		msg=gst_bus_timed_pop_filtered(bus,GST_CLOCK_TIME_NONE,GST_MESSAGE_ELEMENT|GST_MESSAGE_EOS|GST_MESSAGE_ERROR);
-		if(msg==NULL)break;
-		switch(msg->type){
-		case GST_MESSAGE_ELEMENT:
-			str=gst_message_get_structure(msg);
-			if(gst_structure_has_field(str, "pixbuf")){
-				gst_structure_get(str,"pixbuf",GDK_TYPE_PIXBUF,&pixbuf,NULL);
-				name=g_strdup_printf("test-%d.jpg",id);
-				id++;
-				//gdk_pixbuf_save(pixbuf,name,"jpeg",NULL,"quality", "90", NULL);
-				g_free(name);
-				g_object_unref(pixbuf);
-			}
-			//update time info
-			g_mutex_lock(&data->m);
-			cap=gst_pad_get_current_caps(pad);
-			name=gst_caps_to_string(cap);
-			g_print("%s\n",name);
-			g_free(name);
-			cstr=gst_caps_get_structure(cap,0);
-//			value=gst_structure_get_value (cstr,"framerate");
-//			if(value!=NULL){
-//				g_print("framerate:%d/%d",gst_value_get_fraction_numerator(value),gst_value_get_fraction_denominator(value));
-//			}
-			gst_structure_get(cstr,"framerate",GST_TYPE_FRACTION,&ne,&de,NULL);
-			data->framerate=ne/(de*1.0);
-			gst_caps_unref(cap);
-			gst_element_query_duration(src, GST_FORMAT_TIME, &data->duration);
-			gst_element_query_position(src,GST_FORMAT_TIME,&data->position);
-			g_mutex_unlock(&data->m);
-			g_print("%d\n",data->position/GST_SECOND);
-			if(data->duration==-1)run=FALSE;//it is a image
-			break;
-		case GST_MESSAGE_ERROR:
-			gst_message_parse_error(msg,&err,&debug);
-			g_printerr("Error:%s\nDebug:%s\n",err->message,debug);
-			g_error_free(err);
-			g_free(debug);
-		case GST_MESSAGE_EOS:
-		default:
-			run=FALSE;
-			break;
+	pixbuf=g_async_queue_pop(data->queue);
+	if(pixbuf==thread)break;//以thread*自身作为退出线程的标识
+	g_mutex_lock(&data->m);
+	area_list=g_hash_table_get_keys(data->areatable);
+	al=area_list;
+	while(al!=NULL){
+		area=al->data;
+		post_surf=cairo_image_surface_create(CAIRO_FORMAT_ARGB32,area->area->w/1,area->area->h/1);
+		cr=cairo_create(post_surf);
+		my_video_area_to_area_coordinate(cr, area);
+		gdk_cairo_set_source_pixbuf(cr,pixbuf,0,0);
+		cairo_paint(cr);
+		cairo_destroy(cr);
+		cairo_surface_flush(post_surf);
+		ret=TRUE;
+		post_list=g_hash_table_lookup(data->areatable,area);
+		pl=post_list;
+		if(pl!=NULL){
+			//初始化数据
+			post=pl->data;
+			post->out_size=0;
+			post->h=0;
+			post->w=0;
+			out_data=NULL;
 		}
-		//if(id>10)run=FALSE;
-		gst_message_unref(msg);
+		while(pl!=NULL){
+			post=pl->data;
+			ret=post_process(post, &post_surf, &out_data);
+			pl=pl->next;
+			if(pl!=NULL){
+				//传递输出信息到下一个的后处理。
+				next_post=pl->data;
+				next_post->out_size=post->out_size;
+				next_post->h=post->h;
+				next_post->w=post->w;
+			}
+			if(ret==FALSE){
+				g_printerr("Error:\n\tPost:%s have some problem\n",post->name);
+			}
+		}
+		g_free(out_data);
+		cairo_surface_destroy(post_surf);
+		al=al->next;
 	}
-	gst_element_set_state(line,GST_STATE_NULL);
-	gst_object_unref(pad);
-	gst_object_unref(line);
-	post_thread_data_free(data);
-	g_print("thread end\n");
-	return NULL;
+	g_list_free(area_list);
+	g_object_unref(pixbuf);
+	data->start=FALSE;
+	g_mutex_unlock(&data->m);
+	}
+	g_thread_exit(data);
+	return data;
 }
 
-void run_post_cb(GtkButton *button,MyMain *self){
+
+void run_post_cb(GtkToggleButton *button,MyMain *self){
 	GET_PRIV;
 	if(priv->current_area==NULL)return;
 	PostCommon *post;
 	guint id;
 	gchar *post_name;
 	GList *list=NULL,*l;
+	PostThreadData *data;
 	GtkTreeIter iter;
+	if(gtk_toggle_button_get_active(button)==FALSE){
+		//kill the thread
+		data=g_hash_table_lookup(priv->thread_table,priv->current_area);
+		if(data==NULL)return;
+		if(g_hash_table_size(data->areatable)==1){
+			g_hash_table_remove(priv->thread_table,priv->current_area);
+			g_async_queue_push(data->queue,data->thread);
+			//wait for thread exit
+			g_thread_join(data->thread);
+			post_thread_data_free(data);
+		}else{
+			g_mutex_lock(&data->m);
+			g_hash_table_remove(data->areatable,priv->current_area);
+			g_mutex_unlock(&data->m);
+		}
+		g_free(priv->current_area->area->describe);
+		priv->current_area->area->describe=NULL;
+		return;
+	}
+	//run the thread
 	if(gtk_tree_model_get_iter_first(priv->current_area->process_list,&iter)){
 		do{
-			gtk_tree_model_get(priv->current_area,&iter,col_id,&id,col_name,&post_name,col_post,&post,-1);
-			if(post->post_type==OUT_WINDOWS)continue;//skip window out
+			gtk_tree_model_get(priv->current_area->process_list,&iter,col_id,&id,col_name,&post_name,col_post,&post,-1);
 			if(post->name!=NULL)g_free(post->name);
 			post->name=g_strdup_printf("%d %s %d %s",priv->current_area->area->id,priv->current_area->area->label,id,post_name);
 			post->area_id=priv->current_area->area->id;
+			post->framerate_d=priv->framerate_d;
+			post->framerate_n=priv->framerate_n;
 			g_free(post_name);
 			list=g_list_append(list,post);
+			post_run(post);
 		}while(	gtk_tree_model_iter_next(priv->current_area->process_list, &iter));
 	};
-	PostThreadData *data=g_malloc0(sizeof(PostThreadData));
-	g_object_get(priv->playbin,"current-uri",&data->uri,NULL);
-	data->area=g_list_append(NULL,priv->current_area->area);
-	data->post_list=list;
+	data=g_malloc0(sizeof(PostThreadData));
+	data->areatable=g_hash_table_new_full(g_direct_hash,g_direct_equal,NULL,g_list_free);
+	g_hash_table_insert(data->areatable,priv->current_area,list);
 	g_mutex_init(&data->m);
 	data->stop=FALSE;
-	priv->thread=g_thread_new(priv->current_area->area->label,run_post_thread,data);
+	data->start=TRUE;
+	data->queue=g_async_queue_new();
+	data->position=&priv->position;
+	data->duration=&priv->duration;
+	data->thread=g_thread_new(priv->current_area->area->label,run_post_thread,data);
+	priv->current_area->area->describe=g_strdup("Runing");
+	g_hash_table_insert(priv->thread_table,priv->current_area,data);
 }
 
 void post_name_changed_cb (GtkCellRendererText *renderer,
@@ -1303,7 +1417,8 @@ void add_scan_bitmap_cb (GtkMenuItem *menuitem,MyMain *self){
 	PostBitmap *post=g_malloc0(sizeof(PostBitmap));
 	add_post_process(self, post, "Scan Bitmap", POST_BITMAP);
 	post->thresold=127;
-	post->gray_rank=2;
+	post->gray_rank=1;
+	post->gray=GRAY_SIM_DIFFUSE;
 	post->first=SCAN_DIR_LEFT_TO_RIGHT;
 	post->second=SCAN_DIR_TOP_TO_BOTTOM;
 }
@@ -1315,6 +1430,7 @@ void add_resize_cb (GtkMenuItem *menuitem,MyMain *self){
 	add_post_process(self, post, "Resize", POST_RESIZE);
 	post->resize_w=128;
 	post->resize_h=64;
+	post->full=TRUE;
 }
 
 void add_output_window_cb (GtkMenuItem *menuitem,MyMain *self){
@@ -1345,6 +1461,13 @@ void add_output_image_file_cb (GtkMenuItem *menuitem,MyMain *self){
 gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 	GET_PRIV;
 	gint64 pos, dur;
+	GstQuery *query;
+	GstCaps *cap;
+	GstPad *pad;
+	GstStructure *structure;
+	GList *threads=g_hash_table_get_values(priv->thread_table);
+	GList *l;
+	PostThreadData *data;
 	if (message->type == GST_MESSAGE_ELEMENT) {
 		GstStructure *s = gst_message_get_structure(message);
 		if (gst_structure_has_field_typed(s, "pixbuf", GDK_TYPE_PIXBUF)) {
@@ -1354,11 +1477,29 @@ gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 			gtk_widget_queue_draw(priv->video_area);
 			gtk_widget_queue_draw(priv->preview_area);
 			post_view_refresh(self);
+			l=threads;
+			if(l!=NULL&&priv->image_refresh){
+				while(l!=NULL){
+					data=l->data;
+					g_async_queue_push(data->queue,g_object_ref(p));
+					l=l->next;
+				}
+				g_list_free(threads);
+			}
+			priv->image_refresh=TRUE;
 			g_object_unref(p);
 			gst_element_query_position(priv->pline, GST_FORMAT_TIME, &pos);
 			gst_element_query_duration(priv->pline, GST_FORMAT_TIME, &dur);
 			gtk_adjustment_set_upper(priv->progress, dur / GST_SECOND);
 			gtk_adjustment_set_value(priv->progress, pos / GST_SECOND);
+			priv->position=pos;
+			priv->duration=dur;
+			pad=gst_element_get_static_pad(priv->video_sink, "sink");
+			cap=gst_pad_get_current_caps(pad);
+			structure=gst_caps_get_structure(cap,0);
+			gst_structure_get(structure,"framerate",GST_TYPE_FRACTION,&priv->framerate_n,&priv->framerate_d,NULL);
+			gst_caps_unref(cap);
+			gst_object_unref(pad);
 			if (gtk_toggle_button_get_active(priv->full_screen)) {
 				full_screen(self);
 			}
@@ -1422,6 +1563,8 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_child_private(klass, MyMain, resize);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, post_tree_view_menu);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, scan_preview);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, run_post);
+
 	//post setting dialog
 	gtk_widget_class_bind_template_child_private(klass, MyMain, post_bitmap_dialog);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, post_bw_dialog);
@@ -1505,7 +1648,6 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_child_private(klass, MyMain, out_file_output_head);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, out_file_overwrite);
 
-
 	gtk_widget_class_bind_template_callback(klass, label_changed_cb);
 	gtk_widget_class_bind_template_callback(klass, pos_changed_cb);
 	gtk_widget_class_bind_template_callback(klass, size_changed_cb);
@@ -1546,7 +1688,6 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_callback(klass, post_bitmap_dir_changed_cb);
 	gtk_widget_class_bind_template_callback(klass, post_bitmap_preview_draw_cb);
 	gtk_widget_class_bind_template_callback(klass, post_bitmap_bit_dir_preview_draw_cb);
-	gtk_widget_class_bind_template_callback(klass, run_post_cb);
 
 	//menu callback
 	gtk_widget_class_bind_template_callback(klass, add_argb_remap_cb);
@@ -1560,8 +1701,6 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_callback(klass, add_to_gray_cb);
 	gtk_widget_class_bind_template_callback(klass, add_transparent_cb);
 	gtk_widget_class_bind_template_callback(klass, add_resize_cb);
-
-
 }
 
 static void my_main_init(MyMain *self) {
@@ -1570,6 +1709,7 @@ static void my_main_init(MyMain *self) {
 	GET_PRIV;
 	priv->video_area = my_video_area_new();
 	priv->current_area = NULL;
+	priv->thread_table=g_hash_table_new(g_direct_hash,g_direct_equal);
 	priv->area_table = g_hash_table_new(g_direct_hash, g_direct_equal);
 	gtk_container_add(priv->video_box, priv->video_area);
 	//gtk_box_pack_start (priv->video_box, priv->video_area, TRUE, TRUE, 0);
