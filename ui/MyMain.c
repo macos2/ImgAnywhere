@@ -37,8 +37,9 @@ typedef struct {
 	GtkImage *bw,*diff,*file,*gray,*remap,*rgbfmt,*scan,*transparent,*window,*image_file,*resize,*scan_preview;
 	GtkDialog *open_uri_dialog;
 	GHashTable *thread_table;
+
 //	GThread *thread;
-//	GAsyncQueue *queue;
+	GAsyncQueue *widget_draw_queue;
 	guint64 duration;
 	guint64 position;
 	gboolean image_refresh;
@@ -1189,7 +1190,7 @@ gpointer run_post_thread(PostThreadData *data){
 		area=al->data;
 		post_surf=cairo_image_surface_create(CAIRO_FORMAT_ARGB32,area->area->w/1,area->area->h/1);
 		cr=cairo_create(post_surf);
-		my_video_area_to_area_coordinate(cr, area);
+		my_video_area_to_area_coordinate(cr, area->area);
 		gdk_cairo_set_source_pixbuf(cr,pixbuf,0,0);
 		cairo_paint(cr);
 		cairo_destroy(cr);
@@ -1267,6 +1268,7 @@ void run_post_cb(GtkToggleButton *button,MyMain *self){
 		do{
 			gtk_tree_model_get(priv->current_area->process_list,&iter,col_id,&id,col_name,&post_name,col_post,&post,-1);
 			if(post->name!=NULL)g_free(post->name);
+			//update info of the post
 			post->name=g_strdup_printf("%d %s %d %s",priv->current_area->area->id,priv->current_area->area->label,id,post_name);
 			post->area_id=priv->current_area->area->id;
 			post->framerate_d=priv->framerate_d;
@@ -1308,6 +1310,7 @@ void add_post_process(MyMain *self,PostCommon *post,gchar *name,PostType type){
 	GtkTreeIter iter;
 	AreaInfo *info=priv->current_area;
 	post->post_type=type;
+	post->widget_draw_queue=priv->widget_draw_queue;
 	guint id=gtk_tree_model_iter_n_children(info->process_list,NULL);
 	gchar *n=g_strdup_printf("%s %d",name,id);
 	gtk_list_store_append(info->process_list,&iter);
@@ -1468,6 +1471,7 @@ gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 	GList *threads=g_hash_table_get_values(priv->thread_table);
 	GList *l;
 	PostThreadData *data;
+	GtkWidget *widget;
 	if (message->type == GST_MESSAGE_ELEMENT) {
 		GstStructure *s = gst_message_get_structure(message);
 		if (gst_structure_has_field_typed(s, "pixbuf", GDK_TYPE_PIXBUF)) {
@@ -1477,6 +1481,7 @@ gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 			gtk_widget_queue_draw(priv->video_area);
 			gtk_widget_queue_draw(priv->preview_area);
 			post_view_refresh(self);
+			//push the pixbuf to the runing post thread
 			l=threads;
 			if(l!=NULL&&priv->image_refresh){
 				while(l!=NULL){
@@ -1488,6 +1493,12 @@ gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 			}
 			priv->image_refresh=TRUE;
 			g_object_unref(p);
+			//redraw the widget that post thread indicate,since GTK is not MT SAFT.
+			while(1){
+				widget=g_async_queue_try_pop(priv->widget_draw_queue);
+				if(widget==NULL)break;
+				gtk_widget_queue_draw(widget);
+			}
 			gst_element_query_position(priv->pline, GST_FORMAT_TIME, &pos);
 			gst_element_query_duration(priv->pline, GST_FORMAT_TIME, &dur);
 			gtk_adjustment_set_upper(priv->progress, dur / GST_SECOND);
@@ -1711,6 +1722,7 @@ static void my_main_init(MyMain *self) {
 	priv->current_area = NULL;
 	priv->thread_table=g_hash_table_new(g_direct_hash,g_direct_equal);
 	priv->area_table = g_hash_table_new(g_direct_hash, g_direct_equal);
+	priv->widget_draw_queue=g_async_queue_new();
 	gtk_container_add(priv->video_box, priv->video_area);
 	//gtk_box_pack_start (priv->video_box, priv->video_area, TRUE, TRUE, 0);
 	my_video_area_set_pixbuf(priv->video_area,

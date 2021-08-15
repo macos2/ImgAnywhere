@@ -40,7 +40,10 @@ typedef struct {
 	guint8 framerate_d;
 	guint32 area_id;
 	gchar *name;
+	//link to the MyMainPrivate->widget_draw_queue to redraw the display widget.
+	GAsyncQueue *widget_draw_queue;
 	PostType post_type;
+	//w,h,out_size use for translate the info of the output data.
 	guint32 w, h;
 	guint64 out_size;
 } PostCommon;
