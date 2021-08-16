@@ -12,7 +12,6 @@
 #include <glib-object.h>
 #include <gtk/gtk.h>
 #include <gst/gst.h>
-#include "gresources.h"
 #include "MyVideoArea.h"
 #include "MyLogo.h"
 //#include "MyVideoAreaFilter.h"

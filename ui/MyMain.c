@@ -7,7 +7,7 @@
  */
 
 #include "MyMain.h"
-
+#include "gresources.h"
 #define GET_PRIV   MyMainPrivate *priv=my_main_get_instance_private(self)
 
 typedef struct {
@@ -106,6 +106,11 @@ typedef struct {
 }PostThreadData;
 
 void run_post_cb(GtkToggleButton *button,MyMain *self);
+
+void post_list_free(GList *list){
+  g_list_foreach(list, post_stop, NULL);
+  g_list_free(list);
+}
 
 void post_thread_data_free(PostThreadData *data){
 	g_async_queue_unref(data->queue);
@@ -517,12 +522,10 @@ void volume_changed_cb(GtkScaleButton *button, MyMain *self) {
 void play_cb(GtkButton *button, MyMain *self) {
 	GET_PRIV;
 	if(priv->framerate_n==0){//picture
-		gst_element_set_state(priv->pline,GST_STATE_READY);
-		gst_element_set_state(priv->pline, GST_STATE_PLAYING);
+		gst_element_set_state(priv->pline,GST_STATE_NULL);
 		priv->image_refresh=FALSE;
-	}else{
-		gst_element_set_state(priv->pline, GST_STATE_PLAYING);
 	}
+	gst_element_set_state(priv->pline, GST_STATE_PLAYING);
 	priv->state = GST_STATE_PLAYING;
 }
 
@@ -1279,7 +1282,7 @@ void run_post_cb(GtkToggleButton *button,MyMain *self){
 		}while(	gtk_tree_model_iter_next(priv->current_area->process_list, &iter));
 	};
 	data=g_malloc0(sizeof(PostThreadData));
-	data->areatable=g_hash_table_new_full(g_direct_hash,g_direct_equal,NULL,g_list_free);
+	data->areatable=g_hash_table_new_full(g_direct_hash,g_direct_equal,NULL,post_list_free);
 	g_hash_table_insert(data->areatable,priv->current_area,list);
 	g_mutex_init(&data->m);
 	data->stop=FALSE;

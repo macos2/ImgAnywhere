@@ -164,9 +164,9 @@ GdkPixbuf* post_preview(PostCommon *post, cairo_surface_t **s) {
 		break;
 	case OUT_WINDOWS:
 		window = post;
-		if (window->display_widget == NULL)
-			post_run(window);
-		out_windows(window, &surf, NULL);
+//		if (window->display_widget == NULL)
+//			post_run(window);
+//		if(out_windows(window, &surf, NULL))gtk_widget_queue_draw(window->display_widget);
 		break;
 	default:
 		break;
@@ -234,6 +234,7 @@ void post_stop(PostCommon *post) {
 	switch (post->post_type) {
 	case OUT_WINDOWS:
 		win = post;
+		while(g_async_queue_remove(win->com.widget_draw_queue, win->display_widget));
 		if (win->display_widget != NULL) {
 			w = gtk_widget_get_toplevel(win->display_widget);
 			gtk_widget_destroy(w);
@@ -517,7 +518,7 @@ void create_display_widget(OutWindow *post) {
 }
 
 gboolean out_windows(OutWindow *post, cairo_surface_t **s, gpointer *out) {
-	cairo_surface_t *surf;
+	cairo_surface_t *surf=*s;
 	if (surf == NULL)
 		return FALSE;
 	guint32 w, h;
