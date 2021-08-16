@@ -196,17 +196,13 @@ void area_move(MyVideoArea *video_area, VideoBoxArea *area, gdouble *x,
 	post_view_refresh(self);
 }
 
-void area_resize(MyVideoArea *video_area, VideoBoxArea *area, gdouble *add_w,
-		gdouble *add_h, MyMain *self) {
+void area_resize(MyVideoArea *video_area, VideoBoxArea *area, gdouble add_w,
+		gdouble add_h, MyMain *self) {
 	GET_PRIV;
 	//update_area_info (area, self);
 	if (gtk_toggle_button_get_active(priv->size_radio_lock)) {
 		gdouble r = priv->r_w_h;
-		priv->current_area->area->w -= *add_w;
-		priv->current_area->area->h -= *add_h;
-		*add_w = r * *add_h;
-		priv->current_area->area->w += *add_w;
-		priv->current_area->area->h += *add_h;
+		area->w +=  r * add_h-add_w;
 	}
 	gtk_adjustment_set_value(priv->size_w, area->w);
 	gtk_adjustment_set_value(priv->size_h, area->h);
@@ -1360,6 +1356,7 @@ void add_post_process(MyMain *self,PostCommon *post,gchar *name,PostType type){
 	if(ti!=NULL)pixbuf=gtk_image_get_pixbuf(ti);
 	gtk_list_store_set(info->process_list,&iter,col_post,post,col_id,id,col_name,n,col_preview_pixbuf,NULL,col_type_pixbuf,pixbuf,col_type,type,-1);
 	g_free(n);
+	post_view_refresh(self);
 }
 
 void add_to_gray_cb (GtkMenuItem *menuitem,MyMain *self){
@@ -1393,11 +1390,11 @@ void add_error_diffuse_cb (GtkMenuItem *menuitem,MyMain *self){
 	GET_PRIV;
 	if(priv->current_area==NULL)return;
 	PostDiffuse *post=g_malloc0(sizeof(PostDiffuse));
-	add_post_process(self, post, "Error Diffusion", POST_DIFFUSE);
 	post->rank=2;
 	post->radio.bm=diff_332.bm;
 	post->radio.r=diff_332.r;
 	post->radio.rb=diff_332.rb;
+	add_post_process(self, post, "Error Diffusion", POST_DIFFUSE);
 }
 
 void add_transparent_cb (GtkMenuItem *menuitem,MyMain *self){

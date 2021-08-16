@@ -334,7 +334,7 @@ gboolean my_video_area_pointer_motion (MyVideoArea *self, GdkEventMotion *event,
       priv->sel_area->h += h;
       if (priv->sel_area->w < 8.) priv->sel_area->w = 8.;
       if (priv->sel_area->h < 8.) priv->sel_area->h = 8.;
-      g_signal_emit_by_name (self, "area_resize", priv->sel_area, &w, &h, NULL);
+      g_signal_emit_by_name (self, "area_resize", priv->sel_area, w, h, NULL);
     }
     else {
       //rotate area
@@ -464,8 +464,8 @@ static void my_video_area_class_init (MyVideoAreaClass *klass) {
 		NULL);
   g_signal_new ("area_resize", MY_TYPE_VIDEO_AREA, G_SIGNAL_RUN_FIRST,
 		G_STRUCT_OFFSET(MyVideoAreaClass, area_resize), NULL, NULL,
-		NULL, G_TYPE_NONE, 3, G_TYPE_POINTER, G_TYPE_POINTER,
-		G_TYPE_POINTER, NULL);
+		NULL, G_TYPE_NONE, 3, G_TYPE_POINTER, G_TYPE_DOUBLE,
+		G_TYPE_DOUBLE, NULL);
 }
 
 static void my_video_area_init (MyVideoArea *self) {

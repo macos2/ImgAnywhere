@@ -320,7 +320,7 @@ gboolean post_argb_remap(PostARGBRemap *argbremap, cairo_surface_t **s,
 		gpointer *out) {
 	PostCommon *com = &argbremap->com;
 	cairo_surface_t *surf = *s;
-	guint8 data = cairo_image_surface_get_data(surf);
+	guint8 *data = cairo_image_surface_get_data(surf);
 	guint32 w, h;
 	w = cairo_image_surface_get_width(surf);
 	h = cairo_image_surface_get_height(surf);
@@ -477,7 +477,7 @@ gboolean post_resize(PostResize *resize, cairo_surface_t **s, gpointer *out) {
 
 void logo_draw_cb(MyLogo *self, cairo_t *cr) {
 	guint32 w, h;
-	cairo_surface_t *surf = g_object_get_data(self, "surf");
+	cairo_surface_t *surf = cairo_surface_reference( g_object_get_data(self, "surf"));
 	if (surf == NULL)
 		return;
 	w = cairo_image_surface_get_width(surf);
@@ -485,6 +485,7 @@ void logo_draw_cb(MyLogo *self, cairo_t *cr) {
 	gtk_window_resize(gtk_widget_get_toplevel(self), w, h);
 	cairo_set_source_surface(cr, surf, 0, 0);
 	cairo_paint(cr);
+	cairo_surface_destroy(surf);
 }
 
 void close_window_cb(GtkWidget *widget, MyLogo *logo) {

@@ -128,6 +128,7 @@ void img_error_diffusion(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t 
 	uint8_t u=255/rank;
 	uint16_t div=0,e,temp;
 	div=ratio->bm+ratio->r+ratio->rb;
+	if(div==0)return;
 	for(i=0;i<h;i++){
 		for(j=0;j<_w;j++){
 			e=(in[i*_w+j]+out[i*_w+j])%u;
