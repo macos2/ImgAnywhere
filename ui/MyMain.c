@@ -25,6 +25,8 @@ typedef struct {
 	GtkTreeView *post_tree_view;
 	GtkPaned *paned;
 	AreaInfo *current_area;
+	GtkButton *del_post;
+	GtkMenuItem *remove;
 	GtkToggleButton *size_radio_lock, *full_screen,*run_post;
 	GtkEntry *area_label, *open_uri;
 	GHashTable *area_table;
@@ -1609,6 +1611,8 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_child_private(klass, MyMain, post_tree_view_menu);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, scan_preview);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, run_post);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, del_post);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, remove);
 
 	//post setting dialog
 	gtk_widget_class_bind_template_child_private(klass, MyMain, post_bitmap_dialog);
@@ -1764,10 +1768,12 @@ static void my_main_init(MyMain *self) {
 	priv->area_table = g_hash_table_new(g_direct_hash, g_direct_equal);
 	priv->widget_draw_queue=g_async_queue_new();
 	gtk_container_add(priv->video_box, priv->video_area);
-	//gtk_box_pack_start (priv->video_box, priv->video_area, TRUE, TRUE, 0);
 	my_video_area_set_pixbuf(priv->video_area,
 			gdk_pixbuf_new_from_file("dog.jpg", NULL));
 	gtk_paned_set_position(priv->paned, 550);
+	g_object_bind_property(priv->run_post,"active",priv->del_post,"sensitive",G_BINDING_INVERT_BOOLEAN|G_BINDING_SYNC_CREATE);
+	g_object_bind_property(priv->run_post,"active",priv->remove,"sensitive",G_BINDING_INVERT_BOOLEAN|G_BINDING_SYNC_CREATE);
+
 	g_signal_connect(priv->video_area, "area_select", area_select, self);
 	g_signal_connect(priv->video_area, "area_move", area_move, self);
 	g_signal_connect(priv->video_area, "area_resize", area_resize, self);
