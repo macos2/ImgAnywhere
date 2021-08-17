@@ -150,6 +150,11 @@ macos2@gitee.com</property>
     <property name="resource">/my/file.png</property>
     <property name="icon_size">3</property>
   </object>
+  <object class="GtkImage" id="framerate">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="resource">/my/framerate.png</property>
+  </object>
   <object class="GtkImage" id="gray">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -2006,6 +2011,175 @@ macos2@gitee.com</property>
       <action-widget response="-6">button12</action-widget>
     </action-widgets>
   </object>
+  <object class="GtkAdjustment" id="post_framerate_d_adj">
+    <property name="lower">1</property>
+    <property name="upper">255</property>
+    <property name="value">1</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="post_framerate_n_adj">
+    <property name="lower">1</property>
+    <property name="upper">255</property>
+    <property name="value">25</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkDialog" id="post_framerate_dialog">
+    <property name="can_focus">False</property>
+    <property name="resizable">False</property>
+    <property name="type_hint">dialog</property>
+    <property name="deletable">False</property>
+    <child>
+      <placeholder/>
+    </child>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can_focus">False</property>
+            <property name="layout_style">end</property>
+            <child>
+              <object class="GtkButton" id="button23">
+                <property name="label">gtk-ok</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="relief">none</property>
+                <property name="use_stock">True</property>
+                <property name="always_show_image">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button24">
+                <property name="label">gtk-cancel</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="relief">none</property>
+                <property name="use_stock">True</property>
+                <property name="always_show_image">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkFixed">
+            <property name="width_request">32</property>
+            <property name="height_request">32</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkGrid">
+                <property name="width_request">110</property>
+                <property name="height_request">64</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="row_spacing">5</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Limit Framerate 限制帧数</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">0</property>
+                    <property name="top_attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="post_framerate_n">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="text" translatable="yes">1</property>
+                    <property name="adjustment">post_framerate_n_adj</property>
+                    <property name="snap_to_ticks">True</property>
+                    <property name="numeric">True</property>
+                    <property name="wrap">True</property>
+                    <property name="value">1</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">/</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">2</property>
+                    <property name="top_attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="post_framerate_d">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="text" translatable="yes">1</property>
+                    <property name="adjustment">post_framerate_d_adj</property>
+                    <property name="snap_to_ticks">True</property>
+                    <property name="numeric">True</property>
+                    <property name="wrap">True</property>
+                    <property name="value">1</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">3</property>
+                    <property name="top_attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">eg: 30 / 1 fps</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">0</property>
+                    <property name="top_attach">1</property>
+                    <property name="width">4</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="x">5</property>
+                <property name="y">5</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="-5">button23</action-widget>
+      <action-widget response="-6">button24</action-widget>
+    </action-widgets>
+  </object>
   <object class="GtkDialog" id="post_gray_dialog">
     <property name="can_focus">False</property>
     <property name="resizable">False</property>
@@ -3739,7 +3913,7 @@ audio-volume-medium-symbolic</property>
       <object class="GtkMenuItem">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Image Post Process</property>
+        <property name="label" translatable="yes">Image Process</property>
         <property name="use_underline">True</property>
         <child type="submenu">
           <object class="GtkMenu">
@@ -3776,6 +3950,31 @@ audio-volume-medium-symbolic</property>
                 <property name="use_stock">False</property>
                 <property name="always_show_image">True</property>
                 <signal name="activate" handler="add_resize_cb" object="MyMain" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Video Process</property>
+        <property name="use_underline">True</property>
+        <child type="submenu">
+          <object class="GtkMenu">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkImageMenuItem">
+                <property name="label" translatable="yes">Limit Framerate</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="image">framerate</property>
+                <property name="use_stock">False</property>
+                <property name="always_show_image">True</property>
+                <signal name="activate" handler="add_framerate_cb" object="MyMain" swapped="no"/>
               </object>
             </child>
           </object>

@@ -39,6 +39,9 @@ PostProcessFunc post_get_process_func(PostCommon *post) {
 	case POST_RESIZE:
 		return post_resize;
 		break;
+	case POST_FRAMERATE:
+		return post_framerate;
+		break;
 	case OUT_FILE:
 		return out_file;
 		break;
@@ -191,6 +194,7 @@ GdkPixbuf* post_preview(PostCommon *post, cairo_surface_t **s) {
 
 void post_run(PostCommon *post) {
 	PostBitmap *bitmap;
+	PostFramerate *framerate;
 	OutImgFile *image;
 	OutFile *file;
 	OutWindow *win;
@@ -200,6 +204,10 @@ void post_run(PostCommon *post) {
 		bitmap = post;
 		bitmap->rank_index = 0;
 		bitmap->rank_dir = 1;
+		break;
+	case POST_FRAMERATE:
+		framerate=post;
+		framerate->previous_pos=0;
 		break;
 	case OUT_IMG_FILE:
 		image = post;
@@ -212,6 +220,7 @@ void post_run(PostCommon *post) {
 		break;
 	case OUT_FILE:
 		file = post;
+		file->index=0;
 		f = g_file_new_for_path(file->filename);
 		if (f == NULL) {
 			file->out = NULL;
@@ -475,6 +484,16 @@ gboolean post_resize(PostResize *resize, cairo_surface_t **s, gpointer *out) {
 	return TRUE;
 }
 
+gboolean post_framerate(PostFramerate *framerate, cairo_surface_t **s, gpointer *out){
+	guint64 interval=ABS(*framerate->com.position-framerate->previous_pos);
+	//g_print("%ld > %ld = %s\n",interval,framerate->interval,interval>framerate->interval?"True":"False");
+	if(interval>framerate->interval){
+		framerate->previous_pos=*framerate->com.position;
+		return TRUE;
+	}
+	return FALSE;
+}
+
 void logo_draw_cb(MyLogo *self, cairo_t *cr) {
 	guint32 w, h;
 	cairo_surface_t *surf = cairo_surface_reference( g_object_get_data(self, "surf"));
@@ -551,7 +570,8 @@ gboolean out_file(OutFile *file, cairo_surface_t **s, gpointer *out) {
 	if (file->c_source) {
 		note = g_string_new("");
 		g_string_append_printf(note,
-				"\n//id:%d\tname:%s\twidth:%d\theight:%d\tsize:%d\tframerate:%d/%d\n",
+				"\n//index:%ld\tid:%d\tname:%s\twidth:%d\theight:%d\tsize:%d\tframerate:%d/%d\n",
+				file->index,
 				file->com.area_id, file->com.name, file->com.w, file->com.h,
 				file->com.out_size, file->com.framerate_n,
 				file->com.framerate_d);
@@ -593,7 +613,8 @@ gboolean out_file(OutFile *file, cairo_surface_t **s, gpointer *out) {
 	} else if (file->asm_source) {
 		note = g_string_new("");
 		g_string_append_printf(note,
-				"\n;id:%d\tname:%s\twidth:%d\theight:%d\tsize:%d\tframerate:%d/%d\n",
+				"\n;index:%ld\tid:%d\tname:%s\twidth:%d\theight:%d\tsize:%d\tframerate:%d/%d\n",
+				file->index,
 				file->com.area_id, file->com.name, file->com.w, file->com.h,
 				file->com.out_size, file->com.framerate_n,
 				file->com.framerate_d);
@@ -647,8 +668,7 @@ gboolean out_file(OutFile *file, cairo_surface_t **s, gpointer *out) {
 		}
 		g_output_stream_write(o, data, file->com.out_size, NULL, NULL);
 	}
-//	g_output_stream_close(o,NULL,NULL);
-//	g_object_unref(o);
+	file->index++;
 	return TRUE;
 }
 

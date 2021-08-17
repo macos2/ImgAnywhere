@@ -30,6 +30,7 @@ typedef enum {
 	POST_TRANSPARENT,
 	POST_BITMAP,
 	POST_RESIZE,
+	POST_FRAMERATE,
 	OUT_WINDOWS,
 	OUT_FILE,
 	OUT_IMG_FILE,
@@ -46,6 +47,7 @@ typedef struct {
 	//w,h,out_size use for translate the info of the output data.
 	guint32 w, h;
 	guint64 out_size;
+	guint64 *position,*duration;
 } PostCommon;
 
 typedef struct {
@@ -105,6 +107,13 @@ typedef struct{
 	gboolean full;
 }PostResize;
 
+typedef struct{
+	PostCommon com;
+	guint n,d;
+	guint64 interval;
+	guint64 previous_pos;
+}PostFramerate;
+
 typedef struct {
 	PostCommon com;
 	GtkWidget *display_widget;
@@ -118,6 +127,7 @@ typedef struct {
 	gboolean head_output;
 	gboolean over_write;
 	GOutputStream *out;
+	guint64 index;
 } OutFile;
 
 typedef struct {
@@ -145,6 +155,7 @@ gboolean post_diffuse(PostDiffuse *diffuse,cairo_surface_t **s,gpointer *out);
 gboolean post_transparent(PostTransparent *transparent,cairo_surface_t **s,gpointer *out);
 gboolean post_bitmap(PostBitmap *bitmap,cairo_surface_t **s,gpointer *out);
 gboolean post_resize(PostResize *resize,cairo_surface_t **s,gpointer *out);
+gboolean post_framerate(PostFramerate *framerate, cairo_surface_t **s, gpointer *out);
 void create_display_widget(OutWindow *post);
 gboolean out_windows(OutWindow *window,cairo_surface_t **s,gpointer *out);
 gboolean out_file(OutFile *file,cairo_surface_t **s,gpointer *out);

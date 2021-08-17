@@ -17,7 +17,7 @@ typedef struct {
 } AreaInfo;
 
 typedef struct {
-	guint8 framerate_n,framerate_d;
+	guint framerate_n,framerate_d;
 	GtkAdjustment *pos_x, *pos_y, *progress, *rotate, *size_h, *size_w, *volume,
 			*scale, *play_speed;
 	GtkScrolledWindow *video_box;
@@ -34,7 +34,7 @@ typedef struct {
 	GstState state;
 	GtkDrawingArea *preview_area;
 	GtkMenu *add_post_menu,*post_tree_view_menu;
-	GtkImage *bw,*diff,*file,*gray,*remap,*rgbfmt,*scan,*transparent,*window,*image_file,*resize,*scan_preview;
+	GtkImage *bw,*diff,*file,*gray,*remap,*rgbfmt,*scan,*transparent,*window,*image_file,*resize,*scan_preview,*framerate;
 	GtkDialog *open_uri_dialog;
 	GHashTable *thread_table;
 
@@ -45,6 +45,7 @@ typedef struct {
 	gboolean image_refresh;
 	//post process setting widget below
 	GtkDialog *out_file_dialog,*out_image_file_dialog;
+	GtkDialog *post_framerate_dialog;
 	GtkDialog *post_bitmap_dialog,*post_bw_dialog,*post_diffuse_dialog,*post_gray_dialog,*post_resize_dialog,*post_rgb_fmt_dialog,*post_argb_remap_dialog,*post_transparent_dialog;
 
 	//post_argb_remap_dialog
@@ -78,6 +79,9 @@ typedef struct {
 	//post_transparent_dialog
 	GtkSpinButton *post_transparent_color_distance;
 	GtkColorButton *post_transparent_color;
+
+	//post_framerate_dialog
+	GtkSpinButton *post_framerate_n,*post_framerate_d;
 
 	//out_image_file_dialog
 	GtkEntry *out_image_file_fmt;
@@ -181,9 +185,9 @@ void area_select(MyVideoArea *video_area, VideoBoxArea *area, MyMain *self) {
 	AreaInfo *info = g_hash_table_lookup(priv->area_table, area);
 	gtk_tree_view_set_model(priv->post_tree_view, info->process_list);
 	post_view_refresh(self);
-
+	gboolean runing=g_hash_table_contains(priv->thread_table,info);
 	g_signal_handlers_disconnect_by_data(priv->run_post,self);
-	gtk_toggle_button_set_active(priv->run_post,g_hash_table_contains(priv->thread_table,info));
+	gtk_toggle_button_set_active(priv->run_post,runing);
 	g_signal_connect(priv->run_post,"toggled",run_post_cb,self);
 }
 
@@ -409,8 +413,6 @@ void size_fit_cb(GtkButton *button, MyMain *self) {
 	GET_PRIV;
 	if (priv->current_area == NULL)
 		return;
-	gst_element_set_state(priv->pline,GST_STATE_PAUSED);
-	priv->state=GST_STATE_PAUSED;
 	GdkPixbuf *pixbuf = my_video_area_get_pixbuf(priv->video_area);
 	if (pixbuf == NULL)
 		return;
@@ -601,6 +603,7 @@ void add_area_cb(GtkMenuItem *menuitem, MyMain *self) {
 void remove_area_cb(GtkMenuItem *menuitem, MyMain *self) {
 	GET_PRIV;
 	if (priv->current_area != NULL) {
+		if(g_hash_table_contains(priv->thread_table,priv->current_area))return;
 		my_main_remove_area(self, priv->current_area->area);
 		priv->current_area = NULL;
 	}
@@ -806,6 +809,7 @@ void post_tree_view_menu_setting_cb (GtkMenuItem *menuitem,MyMain *self){
 	PostDiffuse *diff;
 	PostRGBFmt *fmt;
 	PostTransparent *transparent;
+	PostFramerate *framerate;
 	OutFile *of;
 	OutImgFile *oi;
 	gchar *temp;
@@ -925,6 +929,17 @@ void post_tree_view_menu_setting_cb (GtkMenuItem *menuitem,MyMain *self){
 			transparent->r=rgba.red*255;
 		}
 		break;
+	case POST_FRAMERATE:
+		framerate=post;
+		dialog=priv->post_framerate_dialog;
+		gtk_spin_button_set_value(priv->post_framerate_d,framerate->d);
+		gtk_spin_button_set_value(priv->post_framerate_n,framerate->n);
+		if(gtk_dialog_run(dialog)==GTK_RESPONSE_OK){
+			framerate->n=gtk_spin_button_get_value_as_int(priv->post_framerate_n);
+			framerate->d=gtk_spin_button_get_value_as_int(priv->post_framerate_d);
+			framerate->interval=GST_SECOND/framerate->n*framerate->d;
+		}
+		break;
 	case OUT_FILE:
 		of=post;
 		dialog=priv->out_file_dialog;
@@ -1038,6 +1053,7 @@ void del_post_cb(GtkWidget *widget,MyMain *self){
 	PostCommon *post;
 	gboolean b;
 	if(priv->current_area==NULL)return;
+	if(g_hash_table_contains(priv->thread_table,priv->current_area))return;
 	GtkTreeSelection *sel=gtk_tree_view_get_selection(priv->post_tree_view);
 	GtkListStore *list_store=priv->current_area->process_list;
 	GList *l,*list_row=NULL,*list=gtk_tree_selection_get_selected_rows(sel,&list_store);
@@ -1208,6 +1224,10 @@ gpointer run_post_thread(PostThreadData *data){
 		while(pl!=NULL){
 			post=pl->data;
 			ret=post_process(post, &post_surf, &out_data);
+			if(ret==FALSE){
+				if(post->post_type==POST_FRAMERATE)break;
+				g_printerr("Error:\n\tPost:%s have some problem\n",post->name);
+			}
 			pl=pl->next;
 			if(pl!=NULL){
 				//传递输出信息到下一个的后处理。
@@ -1216,9 +1236,7 @@ gpointer run_post_thread(PostThreadData *data){
 				next_post->h=post->h;
 				next_post->w=post->w;
 			}
-			if(ret==FALSE){
-				g_printerr("Error:\n\tPost:%s have some problem\n",post->name);
-			}
+
 		}
 		g_free(out_data);
 		cairo_surface_destroy(post_surf);
@@ -1310,6 +1328,8 @@ void add_post_process(MyMain *self,PostCommon *post,gchar *name,PostType type){
 	AreaInfo *info=priv->current_area;
 	post->post_type=type;
 	post->widget_draw_queue=priv->widget_draw_queue;
+	post->duration=&priv->duration;
+	post->position=&priv->position;
 	guint id=gtk_tree_model_iter_n_children(info->process_list,NULL);
 	gchar *n=g_strdup_printf("%s %d",name,id);
 	gtk_list_store_append(info->process_list,&iter);
@@ -1336,6 +1356,9 @@ void add_post_process(MyMain *self,PostCommon *post,gchar *name,PostType type){
 		break;
 	case POST_RGB_FMT:
 		ti=priv->rgbfmt;
+		break;
+	case POST_FRAMERATE:
+		ti=priv->framerate;
 		break;
 	case POST_TRANSPARENT:
 		ti=priv->transparent;
@@ -1436,6 +1459,16 @@ void add_resize_cb (GtkMenuItem *menuitem,MyMain *self){
 	post->full=TRUE;
 }
 
+void add_framerate_cb (GtkMenuItem *menuitem,MyMain *self){
+	GET_PRIV;
+	if(priv->current_area==NULL)return;
+	PostFramerate *post=g_malloc0(sizeof(PostFramerate));
+	add_post_process(self, post, "Framerate Limit", POST_FRAMERATE);
+	post->d=1;
+	post->n=60;
+	post->interval=GST_SECOND/post->n*post->d;
+}
+
 void add_output_window_cb (GtkMenuItem *menuitem,MyMain *self){
 	GET_PRIV;
 	if(priv->current_area==NULL)return;
@@ -1505,7 +1538,7 @@ gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 			gtk_adjustment_set_value(priv->progress, pos / GST_SECOND);
 			priv->position=pos;
 			priv->duration=dur;
-			pad=gst_element_get_static_pad(priv->video_sink, "sink");
+			pad=gst_element_get_static_pad(priv->tee_sink, "sink");
 			cap=gst_pad_get_current_caps(pad);
 			structure=gst_caps_get_structure(cap,0);
 			gst_structure_get(structure,"framerate",GST_TYPE_FRACTION,&priv->framerate_n,&priv->framerate_d,NULL);
@@ -1572,6 +1605,7 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_child_private(klass, MyMain, window);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, image_file);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, resize);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, framerate);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, post_tree_view_menu);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, scan_preview);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, run_post);
@@ -1585,6 +1619,7 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_child_private(klass, MyMain, post_rgb_fmt_dialog);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, post_argb_remap_dialog);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, post_transparent_dialog);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, post_framerate_dialog);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, out_file_dialog);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, out_image_file_dialog);
 
@@ -1647,6 +1682,10 @@ static void my_main_class_init(MyMainClass *klass) {
 	//post_transparent_dialog
 	gtk_widget_class_bind_template_child_private(klass, MyMain, post_transparent_color_distance);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, post_transparent_color);
+
+	//post_framerate_dialog
+	gtk_widget_class_bind_template_child_private(klass, MyMain, post_framerate_n);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, post_framerate_d);
 
 	//out_image_file_dialog
 	gtk_widget_class_bind_template_child_private(klass, MyMain, out_image_file_fmt);
@@ -1712,6 +1751,7 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_callback(klass, add_to_gray_cb);
 	gtk_widget_class_bind_template_callback(klass, add_transparent_cb);
 	gtk_widget_class_bind_template_callback(klass, add_resize_cb);
+	gtk_widget_class_bind_template_callback(klass, add_framerate_cb);
 }
 
 static void my_main_init(MyMain *self) {
