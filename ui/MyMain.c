@@ -515,7 +515,8 @@ void align_buttom_cb(GtkButton *button, MyMain *self) {
 
 void volume_changed_cb(GtkScaleButton *button, MyMain *self) {
 	GET_PRIV;
-	gdouble v = gtk_adjustment_get_value(priv->volume);
+	gdouble v = gtk_scale_button_get_value(button);
+	//gdouble v = gtk_adjustment_get_value(priv->volume);
 	g_object_set(priv->playbin, "volume", v, NULL);
 }
 
@@ -1237,6 +1238,8 @@ gpointer run_post_thread(PostThreadData *data){
 				next_post->out_size=post->out_size;
 				next_post->h=post->h;
 				next_post->w=post->w;
+				next_post->framerate_d=post->framerate_d;
+				next_post->framerate_n=post->framerate_n;
 			}
 
 		}
