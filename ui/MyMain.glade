@@ -2556,6 +2556,7 @@ macos2@gitee.com</property>
                       <item id="1" translatable="yes">RGB 565 : 0bRRRRRGGG , 0bGGGBBBBB...</item>
                       <item id="2" translatable="yes">RGB 666 : 0bRRRRRR00 , 0bGGGGGG00 , 0bBBBBBB00...</item>
                       <item id="3" translatable="yes">RGB 888 : 0bRRRRRRRR , 0bGGGGGGGG , 0bBBBBBBBB...</item>
+                      <item id="4" translatable="yes">ARGB 32 : 0xAARRGGBB , 0xAARRGGBB , 0xAARRGGBB...</item>
                     </items>
                   </object>
                   <packing>
@@ -3351,7 +3352,7 @@ audio-volume-medium-symbolic</property>
                                     <property name="can_focus">False</property>
                                     <property name="layout_style">start</property>
                                     <child>
-                                      <object class="GtkButton">
+                                      <object class="GtkButton" id="fit_size">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
@@ -3361,7 +3362,7 @@ audio-volume-medium-symbolic</property>
                                           <object class="GtkImage">
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
-                                            <property name="icon_name">zoom-original-symbolic</property>
+                                            <property name="icon_name">view-fullscreen-symbolic</property>
                                           </object>
                                         </child>
                                       </object>

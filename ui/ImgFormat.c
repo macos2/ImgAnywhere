@@ -31,9 +31,11 @@ uint64_t img_rgb_format (uint32_t *rgb_in, uint8_t **out, uint32_t w, uint32_t h
   uint8_t *s=rgb_in,t;
   uint8_t *d=NULL;
   int32_t i=w*h,j;
+  size_t size;
   switch (format) {
     case RGB_FORMAT_444:
-      d=malloc((((i+1))/2)*3);
+    	size=(((i+1))/2)*3;
+      d=malloc(size);
       *out=d;
       for(j=0;j<i;j+=2){//2 pixel each loop
 	d[0]=s[2]*16/256;//R0
@@ -50,7 +52,8 @@ uint64_t img_rgb_format (uint32_t *rgb_in, uint8_t **out, uint32_t w, uint32_t h
       }
       break;
     case RGB_FORMAT_565:
-      d=malloc(i*2);
+    	size=i*2;
+      d=malloc(size);
       *out=d;
       for(j=0;j<i;j++){//1 pixel each loop
 	d[0]=s[2]*32/256;//R
@@ -64,7 +67,8 @@ uint64_t img_rgb_format (uint32_t *rgb_in, uint8_t **out, uint32_t w, uint32_t h
       }
       break;
     case RGB_FORMAT_666:
-      d=malloc(i*3);
+    	size=i*3;
+      d=malloc(size);
       *out=d;
       for(j=0;j<i;j++){//1 pixel each loop
 	d[0]=(s[2]*64/256)<<2;//R
@@ -75,8 +79,8 @@ uint64_t img_rgb_format (uint32_t *rgb_in, uint8_t **out, uint32_t w, uint32_t h
       }
       break;
     case RGB_FORMAT_888:
-    default:
-      d=malloc(i*3);
+    	size=i*3;
+      d=malloc(size);
       *out=d;
       for(j=0;j<i;j++){//1 pixel each loop
 	d[0]=s[2];//R
@@ -85,9 +89,17 @@ uint64_t img_rgb_format (uint32_t *rgb_in, uint8_t **out, uint32_t w, uint32_t h
 	d+=3;
 	s+=4;
       }
+      break;
+    case RGB_FORMAT_ARGB32:
+    default:
+    	size=i*4;
+    	d=malloc(size);
+    	*out=d;
+    	memcpy(d,s,i*4);
+    	d+=i*4;
+    	break;
   }
-
-  return d-*out;
+  return size;
 }
 
 

@@ -25,7 +25,7 @@ typedef struct {
 	GtkTreeView *post_tree_view;
 	GtkPaned *paned;
 	AreaInfo *current_area;
-	GtkButton *del_post;
+	GtkButton *del_post,*fit_size;
 	GtkMenuItem *remove;
 	GtkToggleButton *size_radio_lock, *full_screen,*run_post;
 	GtkEntry *area_label, *open_uri;
@@ -1613,6 +1613,7 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_child_private(klass, MyMain, run_post);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, del_post);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, remove);
+	gtk_widget_class_bind_template_child_private(klass, MyMain, fit_size);
 
 	//post setting dialog
 	gtk_widget_class_bind_template_child_private(klass, MyMain, post_bitmap_dialog);
@@ -1773,6 +1774,7 @@ static void my_main_init(MyMain *self) {
 	gtk_paned_set_position(priv->paned, 550);
 	g_object_bind_property(priv->run_post,"active",priv->del_post,"sensitive",G_BINDING_INVERT_BOOLEAN|G_BINDING_SYNC_CREATE);
 	g_object_bind_property(priv->run_post,"active",priv->remove,"sensitive",G_BINDING_INVERT_BOOLEAN|G_BINDING_SYNC_CREATE);
+	g_object_bind_property(priv->run_post,"active",priv->fit_size,"sensitive",G_BINDING_INVERT_BOOLEAN|G_BINDING_SYNC_CREATE);
 
 	g_signal_connect(priv->video_area, "area_select", area_select, self);
 	g_signal_connect(priv->video_area, "area_move", area_move, self);
