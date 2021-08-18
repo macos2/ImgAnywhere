@@ -36,18 +36,26 @@ typedef enum {
 	OUT_IMG_FILE,
 } PostType;
 
+typedef struct{
+	guint framerate_n;
+	guint framerate_d;
+	guint32 w, h;
+	guint64 output_size;
+	gpointer output_data;
+}PostTransferData;
+
 typedef struct {
-	guint8 framerate_n;
-	guint8 framerate_d;
 	guint32 area_id;
 	gchar *name;
+	PostType post_type;
 	//link to the MyMainPrivate->widget_draw_queue to redraw the display widget.
 	GAsyncQueue *widget_draw_queue;
-	PostType post_type;
-	//w,h,out_size use for translate the info of the output data.
-	guint32 w, h;
-	guint64 out_size;
+	//link to the MyMainPrivate->framerate_n & framerate_d for default init.
+	guint *framerate_n,*framerate_d;
+	//link to the MyMainPrivate->position & MyMainPrivate->duration.
 	guint64 *position,*duration;
+	//transfer the output data in the thread.
+	PostTransferData *transferdata;
 } PostCommon;
 
 typedef struct {

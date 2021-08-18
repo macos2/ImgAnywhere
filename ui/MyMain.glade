@@ -404,6 +404,11 @@ macos2@gitee.com</property>
     <property name="can_focus">False</property>
     <property name="icon_name">system-run-symbolic</property>
   </object>
+  <object class="GtkImage" id="image_stop">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="icon_name">process-stop-symbolic</property>
+  </object>
   <object class="GtkDialog" id="open_uri_dialog">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Open URI</property>
@@ -2954,6 +2959,18 @@ macos2@gitee.com</property>
                         <property name="image">image_run</property>
                         <property name="use_stock">False</property>
                         <property name="always_show_image">True</property>
+                        <signal name="activate" handler="run_post_all_cb" object="MyMain" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImageMenuItem">
+                        <property name="label" translatable="yes">ALL STOP 全部停止</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="image">image_stop</property>
+                        <property name="use_stock">False</property>
+                        <property name="always_show_image">True</property>
+                        <signal name="activate" handler="stop_post_all_cb" object="MyMain" swapped="no"/>
                       </object>
                     </child>
                   </object>

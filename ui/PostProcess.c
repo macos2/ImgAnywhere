@@ -319,9 +319,10 @@ gboolean post_rgb_fmt(PostRGBFmt *rgb_fmt, cairo_surface_t **s, gpointer *out) {
 	h = cairo_image_surface_get_height(surf);
 	if (*out != NULL)
 		g_free(*out);
-	com->out_size = img_rgb_format(data, out, w, h, rgb_fmt->fmt);
-	com->w = w;
-	com->h = h;
+	PostTransferData *t=com->transferdata;
+	t->output_size=img_rgb_format(data, out, w, h, rgb_fmt->fmt);
+	t->w=w;
+	t->h=h;
 	return TRUE;
 }
 
@@ -440,10 +441,11 @@ gboolean post_bitmap(PostBitmap *bitmap, cairo_surface_t **s, gpointer *out) {
 	}
 	if (*out != NULL)
 		g_free(*out);
-	com->out_size = surf_a1_transform_by_scan(a1, out, bitmap->first,
+	PostTransferData *t=com->transferdata;
+	t->output_size=surf_a1_transform_by_scan(a1, out, bitmap->first,
 			bitmap->second, bitmap->order, bitmap->bitdir);
-	com->w = w;
-	com->h = h;
+	t->w=w;
+	t->h=h;
 	cairo_surface_destroy(a1);
 	cairo_surface_destroy(gray);
 	cairo_surface_destroy(argb);
@@ -488,8 +490,8 @@ gboolean post_framerate(PostFramerate *framerate, cairo_surface_t **s, gpointer 
 	guint64 interval=ABS(*framerate->com.position-framerate->previous_pos);
 	//g_print("%ld > %ld = %s\n",interval,framerate->interval,interval>framerate->interval?"True":"False");
 	if(interval>framerate->interval){
-		framerate->com.framerate_d=framerate->d;
-		framerate->com.framerate_n=framerate->n;
+		framerate->com.transferdata->framerate_d=framerate->d;
+		framerate->com.transferdata->framerate_n=framerate->n;
 		framerate->previous_pos=*framerate->com.position;
 		return TRUE;
 	}
@@ -569,45 +571,46 @@ gboolean out_file(OutFile *file, cairo_surface_t **s, gpointer *out) {
 	if (file->out == NULL)
 		return FALSE;
 	GOutputStream *o = file->out;
+	PostTransferData *t=file->com.transferdata;
 	if (file->c_source) {
 		note = g_string_new("");
 		g_string_append_printf(note,
 				"\n//index:%ld\tid:%d\tname:%s\twidth:%d\theight:%d\tsize:%d\tframerate:%d/%d\n",
 				file->index,
-				file->com.area_id, file->com.name, file->com.w, file->com.h,
-				file->com.out_size, file->com.framerate_n,
-				file->com.framerate_d);
+				file->com.area_id, file->com.name, t->w, t->h,
+				t->output_size, t->framerate_n,
+				t->framerate_d);
 		if (file->head_output) {
 			g_string_append_printf(note,
-					"\t0x%02x,0x%02x,0x%02x,0x%02x,//id=0x%08x\n",
+					"\t0x%02x,0x%02x,0x%02x,0x%02x,\t//id=0x%08x\n",
 					file->com.area_id & 0xff, (file->com.area_id >> 8) & 0xff,
 					(file->com.area_id >> 16) & 0xff,
 					(file->com.area_id >> 24) & 0xff, file->com.area_id);
 			g_string_append_printf(note,
-					"\t0x%02x,0x%02x,0x%02x,0x%02x,//width=0x%08x\n",
-					file->com.w & 0xff, (file->com.w >> 8) & 0xff,
-					(file->com.w >> 16) & 0xff, (file->com.w >> 24) & 0xff,
-					file->com.w);
+					"\t0x%02x,0x%02x,0x%02x,0x%02x,\t//width=0x%08x\n",
+					t->w & 0xff, (t->w >> 8) & 0xff,
+					(t->w >> 16) & 0xff, (t->w >> 24) & 0xff,
+					t->w);
 			g_string_append_printf(note,
-					"\t0x%02x,0x%02x,0x%02x,0x%02x,//height=0x%08x\n",
-					file->com.h & 0xff, (file->com.h >> 8) & 0xff,
-					(file->com.h >> 16) & 0xff, (file->com.h >> 24) & 0xff,
-					file->com.h);
+					"\t0x%02x,0x%02x,0x%02x,0x%02x,\t//height=0x%08x\n",
+					t->h & 0xff, (t->h >> 8) & 0xff,
+					(t->h >> 16) & 0xff, (t->h >> 24) & 0xff,
+					t->h);
 			g_string_append_printf(note,
-					"\t0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,//size=0x%016lx\n",
-					file->com.out_size & 0xff, (file->com.out_size >> 8) & 0xff,
-					(file->com.out_size >> 16) & 0xff,
-					(file->com.out_size >> 24) & 0xff,
-					(file->com.out_size >> 32) & 0xff,
-					(file->com.out_size >> 40) & 0xff,
-					(file->com.out_size >> 48) & 0xff,
-					(file->com.out_size >> 56) & 0xff, file->com.out_size);
+					"\t0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,\t//size=0x%016lx\n",
+					t->output_size & 0xff, (t->output_size >> 8) & 0xff,
+					(t->output_size >> 16) & 0xff,
+					(t->output_size >> 24) & 0xff,
+					(t->output_size >> 32) & 0xff,
+					(t->output_size >> 40) & 0xff,
+					(t->output_size >> 48) & 0xff,
+					(t->output_size >> 56) & 0xff, t->output_size);
 			g_string_append_printf(note,
-					"\t0x%02x,0x%02x,//framerate=0x%02x/0x%02x",
-					file->com.framerate_n, file->com.framerate_d,
-					file->com.framerate_n, file->com.framerate_d);
+					"\t0x%02x,0x%02x,\t//framerate=0x%02x/0x%02x",
+					t->framerate_n, t->framerate_d,
+					t->framerate_n, t->framerate_d);
 		}
-		len = img_data_to_c_array_string(data, file->com.out_size, 16,
+		len = img_data_to_c_array_string(data, t->output_size, 16,
 				note->str, &str);
 		g_output_stream_write(o, str, len, NULL, NULL);
 		g_string_free(note, TRUE);
@@ -617,40 +620,40 @@ gboolean out_file(OutFile *file, cairo_surface_t **s, gpointer *out) {
 		g_string_append_printf(note,
 				"\n;index:%ld\tid:%d\tname:%s\twidth:%d\theight:%d\tsize:%d\tframerate:%d/%d\n",
 				file->index,
-				file->com.area_id, file->com.name, file->com.w, file->com.h,
-				file->com.out_size, file->com.framerate_n,
-				file->com.framerate_d);
+				file->com.area_id, file->com.name, t->w, t->h,
+				t->output_size, t->framerate_n,
+				t->framerate_d);
 		if (file->head_output) {
 			g_string_append_printf(note,
-					"\tDB %02XH,%02XH,%02XH,%02XH,;id=0x%08x\n",
+					"\tDB %02XH,%02XH,%02XH,%02XH\t;id=0x%08x\n",
 					file->com.area_id & 0xff, (file->com.area_id >> 8) & 0xff,
 					(file->com.area_id >> 16) & 0xff,
 					(file->com.area_id >> 24) & 0xff, file->com.area_id);
 			g_string_append_printf(note,
-					"\tDB %02XH,%02XH,%02XH,%02XH,;width=0x%08x\n",
-					file->com.w & 0xff, (file->com.w >> 8) & 0xff,
-					(file->com.w >> 16) & 0xff, (file->com.w >> 24) & 0xff,
-					file->com.w);
+					"\tDB %02XH,%02XH,%02XH,%02XH\t;width=0x%08x\n",
+					t->w & 0xff, (t->w >> 8) & 0xff,
+					(t->w >> 16) & 0xff, (t->w >> 24) & 0xff,
+					t->w);
 			g_string_append_printf(note,
-					"\tDB %02XH,%02XH,%02XH,%02XH,;height=0x%08x\n",
-					file->com.h & 0xff, (file->com.h >> 8) & 0xff,
-					(file->com.h >> 16) & 0xff, (file->com.h >> 24) & 0xff,
-					file->com.h);
+					"\tDB %02XH,%02XH,%02XH,%02XH\t;height=0x%08x\n",
+					t->h & 0xff, (t->h >> 8) & 0xff,
+					(t->h >> 16) & 0xff, (t->h >> 24) & 0xff,
+					t->h);
 			g_string_append_printf(note,
-					"\tDB %02XH,%02XH,%02XH,%02XH,%02XH,%02XH,%02XH,%02XH,;size=0x%016lx\n",
-					file->com.out_size & 0xff, (file->com.out_size >> 8) & 0xff,
-					(file->com.out_size >> 16) & 0xff,
-					(file->com.out_size >> 24) & 0xff,
-					(file->com.out_size >> 32) & 0xff,
-					(file->com.out_size >> 40) & 0xff,
-					(file->com.out_size >> 48) & 0xff,
-					(file->com.out_size >> 56) & 0xff, file->com.out_size);
+					"\tDB %02XH,%02XH,%02XH,%02XH,%02XH,%02XH,%02XH,%02XH\t;size=0x%016lx\n",
+					t->output_size & 0xff, (t->output_size >> 8) & 0xff,
+					(t->output_size >> 16) & 0xff,
+					(t->output_size >> 24) & 0xff,
+					(t->output_size >> 32) & 0xff,
+					(t->output_size >> 40) & 0xff,
+					(t->output_size >> 48) & 0xff,
+					(t->output_size >> 56) & 0xff, t->output_size);
 			g_string_append_printf(note,
-					"\tDB %02XH,%02XH,;framerate=0x%02x/0x%02x",
-					file->com.framerate_n, file->com.framerate_d,
-					file->com.framerate_n, file->com.framerate_d);
+					"\tDB %02XH,%02XH\t;framerate=0x%02x/0x%02x",
+					t->framerate_n, t->framerate_d,
+					t->framerate_n, t->framerate_d);
 		}
-		len = img_data_to_asm_db_string(data, file->com.out_size, 16, note->str,
+		len = img_data_to_asm_db_string(data, t->output_size, 16, note->str,
 				&str);
 		g_output_stream_write(o, str, len, NULL, NULL);
 		g_string_free(note, TRUE);
@@ -659,16 +662,16 @@ gboolean out_file(OutFile *file, cairo_surface_t **s, gpointer *out) {
 		if (file->head_output) {
 			g_output_stream_write(o, &file->com.area_id, sizeof(guint32), NULL,
 					NULL);
-			g_output_stream_write(o, &file->com.w, sizeof(guint32), NULL, NULL);
-			g_output_stream_write(o, &file->com.h, sizeof(guint32), NULL, NULL);
-			g_output_stream_write(o, &file->com.out_size, sizeof(guint64), NULL,
+			g_output_stream_write(o, &t->w, sizeof(guint32), NULL, NULL);
+			g_output_stream_write(o, &t->h, sizeof(guint32), NULL, NULL);
+			g_output_stream_write(o, &t->output_size, sizeof(guint64), NULL,
 					NULL);
-			g_output_stream_write(o, &file->com.framerate_n, sizeof(guint8),
+			g_output_stream_write(o, &t->framerate_n, sizeof(guint8),
 					NULL, NULL);
-			g_output_stream_write(o, &file->com.framerate_d, sizeof(guint8),
+			g_output_stream_write(o, &t->framerate_d, sizeof(guint8),
 					NULL, NULL);
 		}
-		g_output_stream_write(o, data, file->com.out_size, NULL, NULL);
+		g_output_stream_write(o, data, t->output_size, NULL, NULL);
 	}
 	file->index++;
 	return TRUE;
