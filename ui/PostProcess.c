@@ -227,7 +227,7 @@ void post_run(PostCommon *post) {
 			return;
 		}
 		if (file->over_write)
-			g_rmdir(file->filename);
+			unlink(file->filename);
 		file->out = g_file_append_to(f, G_FILE_CREATE_NONE, NULL, NULL);
 		g_object_unref(f);
 		break;

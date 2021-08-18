@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+//#include <stdarg.h>
 
 typedef enum{
 	RGB_FORMAT_444,		//0xRG,0xBR,0xGB,0xRG,0xBR...

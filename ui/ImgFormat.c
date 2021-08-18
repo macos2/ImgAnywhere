@@ -102,49 +102,33 @@ uint64_t img_rgb_format (uint32_t *rgb_in, uint8_t **out, uint32_t w, uint32_t h
   return size;
 }
 
-
 uint64_t img_data_to_string(uint8_t *data,char *note,uint64_t length,uint32_t col,char *row_start,char *fmt,char *seperate,char **res){
   uint64_t i;
-  char *buff;
   uint64_t l=0;
-  char tmp_name[]="tmpXXXXXX";
   char *fmt_s;
-  char *temp,*temp2;
+  char *temp=NULL,*temp2;
   asprintf(&fmt_s,"%s%s","%s",fmt);
-  //FILE *f=fdopen(mkstemp(tmp_name),"w+");
-  //l+=fprintf(f,"%s",note);
   l=asprintf(&temp,"%s",note);
   for(i=0;i<length;i++){
     if(i%col==0){
-      //l+=fprintf(f,"\n");
       l=asprintf(&temp2,"%s\n",temp);
       free(temp);
       temp=temp2;
       if(row_start!=NULL){
-    	  //l+=fprintf(f,"%s",row_start);
           l=asprintf(&temp2,"%s%s",temp,row_start);
           free(temp);
           temp=temp2;
       }
     }
-    //l+=fprintf(f,fmt,data[i]);
     l=asprintf(&temp2,fmt_s,temp,data[i]);
     free(temp);
     temp=temp2;
     if((i+1)%col!=0){
-    	//l+=fprintf(f,seperate);
         l=asprintf(&temp2,"%s%s",temp,seperate);
         free(temp);
         temp=temp2;
     }
   }
-//  fflush(f);
-//  fseek(f,0,SEEK_SET);
-//  buff=malloc(l+1);
-//  fread(buff,l,1,f);
-//  buff[l]=0x00;
-//  fclose(f);
-//  unlink(tmp_name);
   *res=temp;
   free(fmt_s);
   return l;
