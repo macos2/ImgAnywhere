@@ -423,8 +423,8 @@ gboolean post_bitmap(PostBitmap *bitmap, cairo_surface_t **s, gpointer *out) {
 			gray = cairo_surface_reference(surf);
 		a1 = cairo_image_surface_create(CAIRO_FORMAT_A1, w, h);
 		if (bitmap->gray == GRAY_SIM_MUL_THRESOLD) {
-			thresold = bitmap->thresold / bitmap->gray_rank;
-			thresold *= bitmap->rank_index + 1;
+			thresold = (255-bitmap->thresold) / bitmap->gray_rank;
+			thresold = bitmap->thresold + thresold*bitmap->rank_index;
 			bitmap->rank_index += bitmap->rank_dir;
 			if (bitmap->rank_index > bitmap->gray_rank
 					|| bitmap->rank_index == 0)
