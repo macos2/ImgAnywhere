@@ -148,47 +148,6 @@ void image_convert(const char *path){
 int main (int argc,char *argv[]){
 	gtk_init(&argc,&argv);
 	gst_init(&argc,&argv);
-	/*
-	GtkWidget *win=gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	MyVideoArea *area=my_video_area_new();
-	angle=0.;
-	my_video_area_add_area(area,"test","lock",300.,100.,30.,30.);
-	my_video_area_add_area(area,"test2","unlock",200.,100.,30.,30.);
-	//my_video_area_add_area(area,"test3",1200.,200.,400.,400.);
-	my_video_area_add_area(area,"test3",NULL,500.,800.,400.,400.);
-	my_video_area_add_area(area,"test4",NULL,300.,100.,30.,30.);
-	my_video_area_add_area(area,"test5",NULL,200.,100.,30.,30.);
-	my_video_area_add_area(area,"test6",NULL,100,100.,100.,100.);
-	//my_video_area_rotate_area_by_name(area,"test3",FIX_CENTRE,180.);
-//	my_video_area_add_area(area,"test4",100,100.,100.,10.,20.);
-//	my_video_area_add_area(area,"test5",100,100.,100.,10.,30.);
-//	my_video_area_add_area(area,"test6",100,100.,100.,10.,0.);
-//	my_video_area_add_area(area,"test7",50,50.,100.,100.,0.);
-	//g_timeout_add(100,rotate_func,area);
-	GdkPixbuf *buf=gdk_pixbuf_new_from_file("dog.jpg",NULL);
-
-	//buf=gdk_pixbuf_new_from_data(data, colorspace, has_alpha, bits_per_sample, width, height, rowstride, destroy_fn, destroy_fn_data);
-
-
-
-	//GdkPixbuf *buf=gdk_pixbuf_new_from_file("/home/tom/b26d0c84ed83d360f967199618a17aea.jpg",NULL);
-
-	//GdkPixbuf *buf=gdk_pixbuf_new_from_file("/home/tom/无标题.png",NULL);
-	my_video_area_set_pixbuf(area,buf);
-	my_video_area_set_scale(area,1.);
-	g_object_unref(buf);
-	gtk_container_add(win,area);
-	g_signal_connect(win,"delete-event",gtk_main_quit,NULL);
-	gtk_widget_show_all(win);
-
-	cairo_surface_t *s=my_video_area_get_area_content_by_name(area,"test3");
-	//img_rank(cairo_image_surface_get_data(s),cairo_image_surface_get_data(s),400*4,400,2);
-	cairo_surface_write_to_png(s,"result.png");
-//	imgtool_test(s);
-//	img2bin_test(s);
-	 b2bin_test();
-	 //image_convert("dog.jpg");
-	 */
 	 MyMain *w=g_object_new(MY_TYPE_MAIN,NULL);
 	 gtk_widget_show_all(w);
 	gtk_main();

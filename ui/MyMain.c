@@ -532,10 +532,10 @@ void align_buttom_cb(GtkButton *button, MyMain *self) {
 	update_area_info(priv->current_area->area, self);
 }
 
-void volume_changed_cb(GtkScaleButton *button, MyMain *self) {
+void volume_changed_cb(GtkAdjustment *volume, MyMain *self) {
 	GET_PRIV;
-	gdouble v = gtk_scale_button_get_value(button);
-	//gdouble v = gtk_adjustment_get_value(priv->volume);
+	//gdouble v = gtk_scale_button_get_value(button);
+	gdouble v = gtk_adjustment_get_value(volume);
 	g_object_set(priv->playbin, "volume", v, NULL);
 }
 
