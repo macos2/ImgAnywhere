@@ -2094,6 +2094,9 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_callback(klass, add_framerate_cb);
 }
 
+
+// dx9screencapsrc ! autovideoconvert ! queue ! autovideosink
+
 static void my_main_init(MyMain *self) {
 	gint w, h;
 	gtk_widget_init_template(self);
