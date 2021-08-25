@@ -2165,9 +2165,18 @@ static void my_main_init(MyMain *self) {
 			NULL);
 	gst_bus_add_watch(gst_pipeline_get_bus(priv->pline), message_watch_cb,
 			self);
-	my_main_add_area(self, "test", 100, 200, 100, 200);
+
+#ifdef G_OS_WIN32
+	priv->screen_line=gst_parse_launch("dx9screencapsrc name=src ! autovideoconvert ! queue ! gdkpixbufsink name=sink", NULL);
+#else
+	priv->screen_line=gst_parse_launch("ximagesrc name=src ! autovideoconvert ! queue ! gdkpixbufsink name=sink", NULL);
+#endif
+	gst_bus_add_watch(gst_pipeline_get_bus(priv->screen_line), message_watch_cb,
+			self);
+	gst_element_set_state(priv->screen_line,GST_STATE_NULL);
 	gst_element_set_state(priv->pline, GST_STATE_PLAYING);
 	priv->state = GST_STATE_PLAYING;
+	my_main_add_area(self, "test", 100, 200, 100, 200);
 }
 
 MyMain* my_main_new() {
