@@ -439,8 +439,11 @@ void size_fit_cb(GtkButton *button, MyMain *self) {
 		return;
 	gint w = gdk_pixbuf_get_width(pixbuf);
 	gint h = gdk_pixbuf_get_height(pixbuf);
-	gtk_adjustment_set_value(priv->size_w, w * 1.);
-	gtk_adjustment_set_value(priv->size_h, h * 1.);
+	priv->current_area->area->h=h*1.;
+	priv->current_area->area->w=w*1.;
+	update_area_info(priv->current_area->area, self);
+	//gtk_adjustment_set_value(priv->size_w, w * 1.);
+	//gtk_adjustment_set_value(priv->size_h, h * 1.);
 	gtk_widget_queue_draw(priv->video_area);
 	gtk_widget_queue_draw(priv->preview_area);
 }
