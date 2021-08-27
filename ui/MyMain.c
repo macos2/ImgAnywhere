@@ -31,7 +31,7 @@ typedef struct {
 	GtkEntry *area_label, *open_uri;
 	GHashTable *area_table;
 	gdouble r_w_h;
-	GstPipeline *pline, *screen_line, *internal_audio_line, *mic_line;
+	GstPipeline *play_line, *screen_line, *current_line;
 	GstElement *video_sink, *playbin, *tee_sink, *area_filter;
 	GstState state;
 	GtkDrawingArea *preview_area;
@@ -386,7 +386,7 @@ void play_speed_cb(GtkSpinButton *button, MyMain *self) {
 	gint64 pos;
 	GstEvent *event = NULL;
 	gdouble speed = gtk_spin_button_get_value(button);
-	gst_element_query_position(priv->pline, GST_FORMAT_TIME, &pos);
+	gst_element_query_position(priv->play_line, GST_FORMAT_TIME, &pos);
 	if (speed == 0.)
 		speed = 0.001;
 	if (speed > 0.) {
@@ -398,8 +398,8 @@ void play_speed_cb(GtkSpinButton *button, MyMain *self) {
 				GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE, GST_SEEK_TYPE_SET,
 				0, GST_SEEK_TYPE_SET, pos);
 	}
-	//gst_element_set_state(priv->pline,GST_STATE_PLAYING);
-	gst_element_send_event(priv->pline, event);
+	//gst_element_set_state(priv->play_line,GST_STATE_PLAYING);
+	gst_element_send_event(priv->play_line, event);
 }
 
 gint play_speed_input_cb(GtkSpinButton *spin_button, gdouble *new_value,
@@ -542,16 +542,16 @@ void volume_changed_cb(GtkAdjustment *volume, MyMain *self) {
 void play_cb(GtkButton *button, MyMain *self) {
 	GET_PRIV;
 	if (priv->framerate_n == 0) {	//picture
-		gst_element_set_state(priv->pline, GST_STATE_NULL);
+		gst_element_set_state(priv->current_line,GST_STATE_NULL);
 		priv->image_refresh = FALSE;
 	}
-	gst_element_set_state(priv->pline, GST_STATE_PLAYING);
+	gst_element_set_state(priv->current_line, GST_STATE_PLAYING);
 	priv->state = GST_STATE_PLAYING;
 }
 
 void pause_cb(GtkButton *button, MyMain *self) {
 	GET_PRIV;
-	gst_element_set_state(priv->pline, GST_STATE_PAUSED);
+	gst_element_set_state(priv->current_line, GST_STATE_PAUSED);
 	priv->state = GST_STATE_PAUSED;
 }
 
@@ -561,7 +561,7 @@ gboolean progess_changed_cb(GtkScale *scale, GtkScrollType scroll,
 	GstEvent *event;
 	gdouble speed = gtk_adjustment_get_value(priv->play_speed);
 	gint64 pos = value * GST_SECOND;
-	gst_element_set_state(priv->pline, GST_STATE_PLAYING);
+	gst_element_set_state(priv->play_line, GST_STATE_PLAYING);
 	if (speed >= 0.) {
 		event = gst_event_new_seek(speed, GST_FORMAT_TIME,
 				GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE, GST_SEEK_TYPE_SET,
@@ -571,8 +571,8 @@ gboolean progess_changed_cb(GtkScale *scale, GtkScrollType scroll,
 				GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE, GST_SEEK_TYPE_SET,
 				0, GST_SEEK_TYPE_SET, pos);
 	}
-	gst_element_send_event(priv->pline, event);
-	gst_element_set_state(priv->pline, priv->state);
+	gst_element_send_event(priv->play_line, event);
+	gst_element_set_state(priv->play_line, priv->state);
 	return TRUE;
 }
 
@@ -585,10 +585,12 @@ void open_file_cb(GtkMenuItem *menuitem, MyMain *self) {
 	if (gtk_dialog_run(dialog) == GTK_RESPONSE_OK) {
 		gchar *uri = gtk_file_chooser_get_uri(dialog);
 		if (uri != NULL) {
-			gst_element_set_state(priv->pline, GST_STATE_NULL);
+			gst_element_set_state(priv->screen_line,GST_STATE_NULL);
+			gst_element_set_state(priv->play_line, GST_STATE_NULL);
 			g_object_set(priv->playbin, "uri", uri, NULL);
 			g_free(uri);
-			gst_element_set_state(priv->pline, priv->state);
+			gst_element_set_state(priv->play_line, priv->state);
+			priv->current_line=priv->play_line;
 		}
 	}
 	gtk_widget_destroy(dialog);
@@ -602,10 +604,12 @@ void open_uri_cb(GtkMenuItem *menuitem, MyMain *self) {
 	gtk_entry_set_text(priv->open_uri, uri);
 	g_free(uri);
 	if (gtk_dialog_run(priv->open_uri_dialog) == GTK_RESPONSE_OK) {
-		gst_element_set_state(priv->pline, GST_STATE_NULL);
+		gst_element_set_state(priv->screen_line,GST_STATE_NULL);
+		gst_element_set_state(priv->play_line, GST_STATE_NULL);
 		uri = gtk_entry_get_text(priv->open_uri);
 		g_object_set(priv->playbin, "uri", uri, NULL);
-		gst_element_set_state(priv->pline, priv->state);
+		gst_element_set_state(priv->play_line, priv->state);
+		priv->current_line=priv->play_line;
 	}
 	gtk_widget_hide(priv->open_uri_dialog);
 	priv->image_refresh = FALSE;
@@ -613,8 +617,10 @@ void open_uri_cb(GtkMenuItem *menuitem, MyMain *self) {
 
 void open_screen_cb(GtkMenuItem *menuitem, MyMain *self) {
 	GET_PRIV;
-	g_print("open screen");
 	priv->image_refresh = FALSE;
+	gst_element_set_state(priv->play_line,GST_STATE_NULL);
+	gst_element_set_state(priv->screen_line,priv->state);
+	priv->current_line=priv->screen_line;
 }
 
 void add_area_cb(GtkMenuItem *menuitem, MyMain *self) {
@@ -1796,6 +1802,7 @@ gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 	GList *l;
 	PostThreadData *data;
 	GtkWidget *widget;
+	GstElement *sink;
 	if (message->type == GST_MESSAGE_ELEMENT) {
 		GstStructure *s = gst_message_get_structure(message);
 		if (gst_structure_has_field_typed(s, "pixbuf", GDK_TYPE_PIXBUF)) {
@@ -1824,13 +1831,20 @@ gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 					break;
 				gtk_widget_queue_draw(widget);
 			}
-			gst_element_query_position(priv->pline, GST_FORMAT_TIME, &pos);
-			gst_element_query_duration(priv->pline, GST_FORMAT_TIME, &dur);
+
+			gst_element_query_position(priv->current_line, GST_FORMAT_TIME, &pos);
+			gst_element_query_duration(priv->current_line, GST_FORMAT_TIME, &dur);
 			gtk_adjustment_set_upper(priv->progress, dur / GST_SECOND);
 			gtk_adjustment_set_value(priv->progress, pos / GST_SECOND);
 			priv->position = pos;
 			priv->duration = dur;
-			pad = gst_element_get_static_pad(priv->tee_sink, "sink");
+			if(priv->current_line==priv->play_line){
+				sink=priv->tee_sink;
+			}else{
+				//screen line
+				sink=gst_bin_get_by_name(priv->current_line,"sink");
+			}
+			pad = gst_element_get_static_pad(sink, "sink");
 			cap = gst_pad_get_current_caps(pad);
 			structure = gst_caps_get_structure(cap, 0);
 			gst_structure_get(structure, "framerate", GST_TYPE_FRACTION,
@@ -2156,14 +2170,14 @@ static void my_main_init(MyMain *self) {
 //	gst_object_unref(sink_pad);
 
 	priv->playbin = gst_element_factory_make("playbin", "playbin");
-	priv->pline = gst_pipeline_new("line");
-	gst_bin_add_many(priv->pline, priv->playbin, NULL);
+	priv->play_line = gst_pipeline_new("line");
+	gst_bin_add_many(priv->play_line, priv->playbin, NULL);
 	//g_object_set(priv->playbin,"video-sink",priv->video_sink,"uri","file:///home/tom/eclipse-workspace/Spring.mp4",NULL);
 	g_object_set(priv->playbin, "video-sink", priv->tee_sink, "uri",
 			"file:///home/tom/dwhelper/2020VSINGERLIVE%E6%BC%94%E5%94%B1%E4%BC%9A%E8%AF%A6%E6%83%85%E4%BB%8B%E7%BB%8D-2020VSINGERLIVE%E6%BC%94%E5%94%B1%E4%BC%9A%E5%9C%A8%E7%BA%BF%E8%A7%82%E7%9C%8B-2020VSINGERLIV.mp4",
 			"volume", gtk_adjustment_get_value(priv->volume),
 			NULL);
-	gst_bus_add_watch(gst_pipeline_get_bus(priv->pline), message_watch_cb,
+	gst_bus_add_watch(gst_pipeline_get_bus(priv->play_line), message_watch_cb,
 			self);
 
 #ifdef G_OS_WIN32
@@ -2174,8 +2188,9 @@ static void my_main_init(MyMain *self) {
 	gst_bus_add_watch(gst_pipeline_get_bus(priv->screen_line), message_watch_cb,
 			self);
 	gst_element_set_state(priv->screen_line,GST_STATE_NULL);
-	gst_element_set_state(priv->pline, GST_STATE_PLAYING);
+	gst_element_set_state(priv->play_line, GST_STATE_PLAYING);
 	priv->state = GST_STATE_PLAYING;
+	priv->current_line=priv->play_line;
 	my_main_add_area(self, "test", 100, 200, 100, 200);
 }
 
