@@ -2131,8 +2131,8 @@ static void my_main_init(MyMain *self) {
 			"sensitive", G_BINDING_INVERT_BOOLEAN | G_BINDING_SYNC_CREATE);
 	g_object_bind_property(priv->run_post, "active", priv->remove, "sensitive",
 			G_BINDING_INVERT_BOOLEAN | G_BINDING_SYNC_CREATE);
-	g_object_bind_property(priv->run_post, "active", priv->fit_size,
-			"sensitive", G_BINDING_INVERT_BOOLEAN | G_BINDING_SYNC_CREATE);
+//	g_object_bind_property(priv->run_post, "active", priv->fit_size,
+//			"sensitive", G_BINDING_INVERT_BOOLEAN | G_BINDING_SYNC_CREATE);
 
 	g_signal_connect(priv->video_area, "area_select", area_select, self);
 	g_signal_connect(priv->video_area, "area_move", area_move, self);
