@@ -1226,114 +1226,6 @@ void del_post_cb(GtkWidget *widget, MyMain *self) {
 	g_list_free_full(list_row, gtk_tree_row_reference_free);
 }
 
-//void run_post_thread_uridecode_add_pad (GstElement* decodebin,
-//                                     GstPad* srcpad,
-//                                     GstElement *sink){
-//	GstPad *sinkpad=gst_element_get_static_pad(sink,"sink");
-//	gst_pad_link(srcpad,sinkpad);
-//	gst_object_unref(sinkpad);
-//}
-//
-//
-//gpointer run_post_thread(PostThreadData *data){
-//	g_print("thread start\n");
-//	GstBus *bus;
-//	GstElement *src=NULL,*sink,*convert,*queue;
-//	GstPipeline *line;
-//	GstMessage *msg;
-//	GstStructure *str,*cstr;
-//	GdkPixbuf *pixbuf;
-//	cairo_surface_t *surf;
-//	gchar *name;
-//	gchar *debug=NULL;
-//	GError *err=NULL;
-//	GList *l,*pl;
-//	VideoBoxArea *area;
-//	guint id=0;
-//	gboolean run;
-//	GstPad *pad;
-//	GstCaps *cap;
-//	GValue *value=NULL;
-//	gint de,ne;
-//
-//	if(data->screen_src){
-//		src=gst_element_factory_make("ximagesrc","src");
-//	}else{
-//		if(data->uri!=NULL){
-//			src=gst_element_factory_make("uridecodebin", "src");
-//			g_object_set(src,"uri",data->uri,NULL);
-//		}
-//	}
-//	if(src==NULL){
-//		post_thread_data_free(data);
-//		return NULL;
-//	}
-//	line=gst_pipeline_new("line");
-//	sink=gst_element_factory_make("gdkpixbufsink","sink");
-//	convert=gst_element_factory_make("autovideoconvert","convert");
-//	queue=gst_element_factory_make("queue","queue");
-//	gst_bin_add_many(line,src,convert,queue,sink,NULL);
-//	gst_element_link_many(convert,queue,sink,NULL);
-//	g_signal_connect(src,"pad-added",run_post_thread_uridecode_add_pad,convert);
-//	pad=gst_element_get_static_pad(sink,"sink");
-//	bus=gst_pipeline_get_bus(line);
-//	run=TRUE;
-//	gst_element_set_state(line,GST_STATE_PLAYING);
-//	while(run){
-//		msg=gst_bus_timed_pop_filtered(bus,GST_CLOCK_TIME_NONE,GST_MESSAGE_ELEMENT|GST_MESSAGE_EOS|GST_MESSAGE_ERROR);
-//		if(msg==NULL)break;
-//		switch(msg->type){
-//		case GST_MESSAGE_ELEMENT:
-//			str=gst_message_get_structure(msg);
-//			if(gst_structure_has_field(str, "pixbuf")){
-//				gst_structure_get(str,"pixbuf",GDK_TYPE_PIXBUF,&pixbuf,NULL);
-//				name=g_strdup_printf("test-%d.jpg",id);
-//				id++;
-//				//gdk_pixbuf_save(pixbuf,name,"jpeg",NULL,"quality", "90", NULL);
-//				g_free(name);
-//				g_object_unref(pixbuf);
-//			}
-//			//update time info
-//			g_mutex_lock(&data->m);
-//			cap=gst_pad_get_current_caps(pad);
-//			name=gst_caps_to_string(cap);
-//			g_print("%s\n",name);
-//			g_free(name);
-//			cstr=gst_caps_get_structure(cap,0);
-////			value=gst_structure_get_value (cstr,"framerate");
-////			if(value!=NULL){
-////				g_print("framerate:%d/%d",gst_value_get_fraction_numerator(value),gst_value_get_fraction_denominator(value));
-////			}
-//			gst_structure_get(cstr,"framerate",GST_TYPE_FRACTION,&ne,&de,NULL);
-//			data->framerate=ne/(de*1.0);
-//			gst_caps_unref(cap);
-//			gst_element_query_duration(src, GST_FORMAT_TIME, &data->duration);
-//			gst_element_query_position(src,GST_FORMAT_TIME,&data->position);
-//			g_mutex_unlock(&data->m);
-//			g_print("%d\n",data->position/GST_SECOND);
-//			if(data->duration==-1)run=FALSE;//it is a image
-//			break;
-//		case GST_MESSAGE_ERROR:
-//			gst_message_parse_error(msg,&err,&debug);
-//			g_printerr("Error:%s\nDebug:%s\n",err->message,debug);
-//			g_error_free(err);
-//			g_free(debug);
-//		case GST_MESSAGE_EOS:
-//		default:
-//			run=FALSE;
-//			break;
-//		}
-//		//if(id>10)run=FALSE;
-//		gst_message_unref(msg);
-//	}
-//	gst_element_set_state(line,GST_STATE_NULL);
-//	gst_object_unref(pad);
-//	gst_object_unref(line);
-//	post_thread_data_free(data);
-//	g_print("thread end\n");
-//	return NULL;
-//}
-
 GList* get_post_list(AreaInfo *info, GHashTable **outstream_table, MyMain *self) {
 	GET_PRIV;
 	GtkTreeIter iter;
@@ -1409,6 +1301,7 @@ gpointer run_post_thread(PostThreadData *data) {
 				post->transferdata = calloc(1, sizeof(PostTransferData));
 				post->transferdata->framerate_d = *post->framerate_d;
 				post->transferdata->framerate_n = *post->framerate_n;
+				post->transferdata->timestamp=g_object_get_data(pixbuf,"timestamp");
 			}
 			while (pl != NULL) {
 				post = pl->data;
@@ -1611,7 +1504,6 @@ void add_post_process(MyMain *self, PostCommon *post, gchar *name,
 	post->post_type = type;
 	post->widget_draw_queue = priv->widget_draw_queue;
 	post->duration = &priv->duration;
-	post->position = &priv->position;
 	guint id = gtk_tree_model_iter_n_children(info->process_list, NULL);
 	gchar *n = g_strdup_printf("%s %d", name, id);
 	gtk_list_store_append(info->process_list, &iter);
@@ -1806,8 +1698,17 @@ gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 	if (message->type == GST_MESSAGE_ELEMENT) {
 		GstStructure *s = gst_message_get_structure(message);
 		if (gst_structure_has_field_typed(s, "pixbuf", GDK_TYPE_PIXBUF)) {
+			//update the time info
+			gst_element_query_position(priv->current_line, GST_FORMAT_TIME, &pos);
+			gst_element_query_duration(priv->current_line, GST_FORMAT_TIME, &dur);
+			gtk_adjustment_set_upper(priv->progress, dur / GST_SECOND);
+			gtk_adjustment_set_value(priv->progress, pos / GST_SECOND);
+			priv->position = pos;
+			priv->duration = dur;
+			//push the pixbuf to the thread
 			GdkPixbuf *p = NULL;
 			gst_structure_get(s, "pixbuf", GDK_TYPE_PIXBUF, &p, NULL);
+			g_object_set_data(p,"timestamp",pos);
 			my_video_area_set_pixbuf(priv->video_area, p);
 			gtk_widget_queue_draw(priv->video_area);
 			gtk_widget_queue_draw(priv->preview_area);
@@ -1832,12 +1733,7 @@ gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 				gtk_widget_queue_draw(widget);
 			}
 
-			gst_element_query_position(priv->current_line, GST_FORMAT_TIME, &pos);
-			gst_element_query_duration(priv->current_line, GST_FORMAT_TIME, &dur);
-			gtk_adjustment_set_upper(priv->progress, dur / GST_SECOND);
-			gtk_adjustment_set_value(priv->progress, pos / GST_SECOND);
-			priv->position = pos;
-			priv->duration = dur;
+
 			if(priv->current_line==priv->play_line){
 				sink=priv->tee_sink;
 			}else{
@@ -2207,21 +2103,6 @@ void my_main_add_area(MyMain *self, gchar *label, gfloat x, gfloat y, gfloat w,
 	info->surf = NULL;
 	info->process_list = create_process_list();
 	g_hash_table_insert(priv->area_table, info->area, info);
-
-//	static int i=0;
-//	gchar *name=g_strdup_printf("src_%d",i);
-//	MyAreaFilterPad *src_pad=gst_element_get_request_pad(priv->area_filter,name);
-//	g_free(name);
-//	name=g_strdup_printf("gtksink_%d",i);
-//	GstElement *sink=gst_element_factory_make("gtksink",name);
-//	g_free(name);
-//	i++;
-//	gst_bin_add(priv->tee_sink,sink);
-//	g_object_set(src_pad,"boxarea",info->area,NULL);
-//	GstPad *sink_pad=gst_element_get_static_pad(sink,"sink");
-//	gst_pad_link(src_pad,sink_pad);
-//	gst_object_unref(src_pad);
-//	gst_object_unref(sink_pad);
 }
 
 void my_main_remove_area(MyMain *self, VideoBoxArea *area) {

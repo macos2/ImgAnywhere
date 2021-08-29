@@ -41,6 +41,7 @@ typedef struct{
 	guint framerate_d;
 	guint32 w, h;
 	guint64 output_size;
+	guint64 timestamp;
 	gpointer output_data;
 }PostTransferData;
 
@@ -53,7 +54,7 @@ typedef struct {
 	//link to the MyMainPrivate->framerate_n & framerate_d for default init.
 	guint *framerate_n,*framerate_d;
 	//link to the MyMainPrivate->position & MyMainPrivate->duration.
-	guint64 *position,*duration;
+	guint64 *duration;
 	//transfer the output data in the thread.
 	PostTransferData *transferdata;
 } PostCommon;

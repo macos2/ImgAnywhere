@@ -487,12 +487,12 @@ gboolean post_resize(PostResize *resize, cairo_surface_t **s, gpointer *out) {
 }
 
 gboolean post_framerate(PostFramerate *framerate, cairo_surface_t **s, gpointer *out){
-	guint64 interval=ABS(*framerate->com.position-framerate->previous_pos);
-	//g_print("%ld > %ld = %s\n",interval,framerate->interval,interval>framerate->interval?"True":"False");
+	guint64 interval=ABS(framerate->com.transferdata->timestamp-framerate->previous_pos);
+	g_print("%ld > %ld = %s\n",interval,framerate->interval,interval>framerate->interval?"True":"False");
 	if(interval>framerate->interval){
 		framerate->com.transferdata->framerate_d=framerate->d;
 		framerate->com.transferdata->framerate_n=framerate->n;
-		framerate->previous_pos=*framerate->com.position;
+		framerate->previous_pos=framerate->com.transferdata->timestamp;
 		return TRUE;
 	}
 	return FALSE;

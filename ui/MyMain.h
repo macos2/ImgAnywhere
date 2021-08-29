@@ -14,8 +14,6 @@
 #include <gst/gst.h>
 #include "MyVideoArea.h"
 #include "MyLogo.h"
-//#include "MyVideoAreaFilter.h"
-//#include "MyAreaFilterPad.h"
 #include "PostProcess.h"
 G_BEGIN_DECLS
 

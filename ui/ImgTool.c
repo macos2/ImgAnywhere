@@ -135,11 +135,11 @@ void img_error_diffusion(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t 
 			temp=in[i*_w+j]+out[i*_w+j]-e;
 			out[i*_w+j]=temp>255?255:temp;
 			if(j<(_w-pixel_size)){
-				out[i*_w+j+pixel_size]+=e*ratio->r/div;//误差的扩散至右像素。
-				if(i<(h-1))
+				if(in[i*_w+j+pixel_size]<0xff)out[i*_w+j+pixel_size]+=e*ratio->r/div;//误差的扩散至右像素。
+				if(i<(h-1)&&in[(i+1)*_w+j+pixel_size]<0xff)
 					out[(i+1)*_w+j+pixel_size]+=e*ratio->rb/div;//误差的扩散至右下像素。
 				}
-			if(i<(h-1))out[(i+1)*_w+j]+=e*ratio->bm/div;//误差的扩散至下边像素。
+			if(i<(h-1)&&in[(i+1)*_w+j]<0xff)out[(i+1)*_w+j]+=e*ratio->bm/div;//误差的扩散至下边像素。
 			}
 		}
 	}
