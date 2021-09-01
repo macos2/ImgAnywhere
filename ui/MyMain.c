@@ -580,13 +580,21 @@ gboolean progess_changed_cb(GtkScale *scale, GtkScrollType scroll,
 }
 
 void open_file_cb(GtkMenuItem *menuitem, MyMain *self) {
+	gchar *uri;
+	gchar *fn;
 	GET_PRIV;
 	GtkFileChooserDialog *dialog = gtk_file_chooser_dialog_new(
 			"Open Video File", self, GTK_FILE_CHOOSER_ACTION_OPEN,
 			GTK_STOCK_OPEN, GTK_RESPONSE_OK, GTK_STOCK_CANCEL,
 			GTK_RESPONSE_CANCEL, NULL);
+	g_object_get(priv->playbin,"uri",&uri,NULL);
+	if(uri!=NULL){
+	  gtk_file_chooser_set_uri(dialog, uri);
+	  g_free(uri);
+	}
 	if (gtk_dialog_run(dialog) == GTK_RESPONSE_OK) {
-		gchar *uri = gtk_file_chooser_get_uri(dialog);
+		uri = gtk_file_chooser_get_uri(dialog);
+		fn=gtk_file_chooser_get_filename(dialog);
 		if (uri != NULL) {
 			gst_element_set_state(priv->screen_line,GST_STATE_NULL);
 			gst_element_set_state(priv->play_line, GST_STATE_NULL);
@@ -594,6 +602,10 @@ void open_file_cb(GtkMenuItem *menuitem, MyMain *self) {
 			g_free(uri);
 			gst_element_set_state(priv->play_line, priv->state);
 			priv->current_line=priv->play_line;
+		}
+		if(fn !=NULL){
+		  gtk_window_set_title(self, fn);
+		  g_free(fn);
 		}
 	}
 	gtk_widget_destroy(dialog);
@@ -613,6 +625,7 @@ void open_uri_cb(GtkMenuItem *menuitem, MyMain *self) {
 		g_object_set(priv->playbin, "uri", uri, NULL);
 		gst_element_set_state(priv->play_line, priv->state);
 		priv->current_line=priv->play_line;
+		gtk_window_set_title(self, uri);
 	}
 	gtk_widget_hide(priv->open_uri_dialog);
 	priv->image_refresh = FALSE;
@@ -624,6 +637,7 @@ void open_screen_cb(GtkMenuItem *menuitem, MyMain *self) {
 	gst_element_set_state(priv->play_line,GST_STATE_NULL);
 	gst_element_set_state(priv->screen_line,priv->state);
 	priv->current_line=priv->screen_line;
+	gtk_window_set_title(self, "Screen Shoot");
 }
 
 void add_area_cb(GtkMenuItem *menuitem, MyMain *self) {
