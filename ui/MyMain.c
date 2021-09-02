@@ -40,6 +40,7 @@ typedef struct {
 			*window, *image_file, *resize, *scan_preview, *framerate;
 	GtkDialog *open_uri_dialog;
 	GHashTable *thread_table;
+	gchar *open_file_name;
 
 //	GThread *thread;
 	GAsyncQueue *widget_draw_queue;
@@ -587,10 +588,8 @@ void open_file_cb(GtkMenuItem *menuitem, MyMain *self) {
 			"Open Video File", self, GTK_FILE_CHOOSER_ACTION_OPEN,
 			GTK_STOCK_OPEN, GTK_RESPONSE_OK, GTK_STOCK_CANCEL,
 			GTK_RESPONSE_CANCEL, NULL);
-	g_object_get(priv->playbin,"uri",&uri,NULL);
-	if(uri!=NULL){
-	  gtk_file_chooser_set_uri(dialog, uri);
-	  g_free(uri);
+	if(priv->open_file_name!=NULL){
+	  gtk_file_chooser_set_filename(dialog, priv->open_file_name);
 	}
 	if (gtk_dialog_run(dialog) == GTK_RESPONSE_OK) {
 		uri = gtk_file_chooser_get_uri(dialog);
@@ -605,7 +604,8 @@ void open_file_cb(GtkMenuItem *menuitem, MyMain *self) {
 		}
 		if(fn !=NULL){
 		  gtk_window_set_title(self, fn);
-		  g_free(fn);
+		  g_free(priv->open_file_name);
+		  priv->open_file_name=fn;
 		}
 	}
 	gtk_widget_destroy(dialog);
@@ -2033,6 +2033,7 @@ static void my_main_init(MyMain *self) {
 	priv->thread_table = g_hash_table_new(g_direct_hash, g_direct_equal);
 	priv->area_table = g_hash_table_new(g_direct_hash, g_direct_equal);
 	priv->widget_draw_queue = g_async_queue_new();
+	priv->open_file_name=NULL;
 	gtk_container_add(priv->video_box, priv->video_area);
 	my_video_area_set_pixbuf(priv->video_area,
 			gdk_pixbuf_new_from_file("dog.jpg", NULL));

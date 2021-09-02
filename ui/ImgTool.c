@@ -123,23 +123,28 @@ void img_rank(uint8_t *in, uint8_t *out,
 
 void img_error_diffusion(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t pixel_size,uint8_t rank,DiffRatio *ratio){
 	uint32_t i,j;
-	uint32_t _w=w*pixel_size;
+	uint32_t _w=w*pixel_size,temp;
 	if(rank<=0)rank=1;
 	uint8_t u=255/rank;
-	uint16_t div=0,e,temp;
+	uint16_t div=0,e;
 	div=ratio->bm+ratio->r+ratio->rb;
 	if(div==0)return;
 	for(i=0;i<h;i++){
 		for(j=0;j<_w;j++){
 			e=(in[i*_w+j]+out[i*_w+j])%u;
+			e=e>=240?0:e;
+//			printf("(%d,%d)",j,h);
+//			printf("e=%d \tin[i*_w+j]=%d \tout[i*_w+j]=%d\n",e,in[i*_w+j],out[i*_w+j]);
 			temp=in[i*_w+j]+out[i*_w+j]-e;
+//			printf("temp=%d\n",temp);
 			out[i*_w+j]=temp>255?255:temp;
+//			printf("out[i*_w+j]=%d\n\n",out[i*_w+j]);
 			if(j<(_w-pixel_size)){
-				if(in[i*_w+j+pixel_size]<0xff)out[i*_w+j+pixel_size]+=e*ratio->r/div;//误差的扩散至右像素。
-				if(i<(h-1)&&in[(i+1)*_w+j+pixel_size]<0xff)
+				out[i*_w+j+pixel_size]+=e*ratio->r/div;//误差的扩散至右像素。
+				if(i<(h-1))
 					out[(i+1)*_w+j+pixel_size]+=e*ratio->rb/div;//误差的扩散至右下像素。
 				}
-			if(i<(h-1)&&in[(i+1)*_w+j]<0xff)out[(i+1)*_w+j]+=e*ratio->bm/div;//误差的扩散至下边像素。
+			if(i<(h-1))out[(i+1)*_w+j]+=e*ratio->bm/div;//误差的扩散至下边像素。
 			}
 		}
 	}
