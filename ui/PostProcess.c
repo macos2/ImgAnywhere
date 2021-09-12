@@ -552,8 +552,8 @@ gboolean post_framerate (PostFramerate *framerate, cairo_surface_t **s,
 			 gpointer *out) {
   guint64 interval = ABS(
       framerate->com.transferdata->timestamp - framerate->previous_pos);
-  g_print ("%ld > %ld = %s\n", interval, framerate->interval,
-	   interval > framerate->interval ? "True" : "False");
+//  g_print ("%ld > %ld = %s\n", interval, framerate->interval,
+//	   interval > framerate->interval ? "True" : "False");
   if (interval > framerate->interval) {
     framerate->com.transferdata->framerate_d = framerate->d;
     framerate->com.transferdata->framerate_n = framerate->n;
@@ -584,6 +584,7 @@ void close_window_cb (GtkWidget *widget, MyLogo *logo) {
   if (surf != NULL) cairo_surface_destroy (surf);
   if (deleted == NULL) {
     post = g_object_get_data (logo, "post");
+    while(g_async_queue_remove(post->com.widget_draw_queue, post->display_widget));
     post->display_widget = NULL;      //通知后处理窗口已经关闭
   }
 }
@@ -606,8 +607,8 @@ void create_display_widget (OutWindow *post) {
 }
 
 gboolean out_windows (OutWindow *post, cairo_surface_t **s, gpointer *out) {
-  cairo_surface_t *surf = *s;
-  if (surf == NULL) return FALSE;
+  cairo_surface_t *surf;
+  if (*s == NULL) return FALSE;
   guint32 w, h;
   w = cairo_image_surface_get_width (*s);
   h = cairo_image_surface_get_height (*s);
@@ -615,8 +616,10 @@ gboolean out_windows (OutWindow *post, cairo_surface_t **s, gpointer *out) {
   surf = g_object_get_data (post->display_widget, "surf");
   g_object_set_data (post->display_widget, "surf",
 		     cairo_surface_reference (*s));
-  if (post->com.widget_draw_queue != NULL)
+  if (post->com.widget_draw_queue != NULL){
+    while(g_async_queue_remove(post->com.widget_draw_queue, post->display_widget));
     g_async_queue_push (post->com.widget_draw_queue, post->display_widget);
+  }
   //gtk_widget_queue_draw(post->display_widget);
   if (surf != NULL) cairo_surface_destroy (surf);
   return TRUE;

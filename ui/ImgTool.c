@@ -160,3 +160,25 @@ void img_edge_detect(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t pixe
 		}
 	}
 }
+
+
+void img_gray_map(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t pixel_size,uint8_t seed){
+uint32_t len=w*h*pixel_size,i,j,k;
+uint8_t index;
+uint8_t temp;
+uint8_t *map;
+uint32_t _w=w*pixel_size;
+for(i=1;i<h-1;i++){
+  for(j=1;j<w-1;j++){
+    for(k=0;k<pixel_size;k++){
+      index=(in[i*_w+j*pixel_size+k]/21.25+0.5)/1;
+      map=GrayMapWeight+GrayMapWeight_index[index];
+      out[(i-1)*_w+(j-1)*pixel_size+k]+=map[0];
+      out[(i-1)*_w+j*pixel_size+k]+=map[1];
+      out[(i-1)*_w+(j+1)*pixel_size+k]+=map[1];
+
+    }
+  }
+}
+
+}

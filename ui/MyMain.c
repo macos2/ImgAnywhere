@@ -1668,7 +1668,7 @@ void add_framerate_cb(GtkMenuItem *menuitem, MyMain *self) {
 	PostFramerate *post = g_malloc0(sizeof(PostFramerate));
 	add_post_process(self, post, "Framerate Limit", POST_FRAMERATE);
 	post->d = 1;
-	post->n = 60;
+	post->n = 25;
 	post->interval = GST_SECOND / post->n * post->d;
 }
 
@@ -1729,7 +1729,10 @@ gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 			my_video_area_set_pixbuf(priv->video_area, p);
 			gtk_widget_queue_draw(priv->video_area);
 			gtk_widget_queue_draw(priv->preview_area);
-			post_view_refresh(self);
+
+			//stop the runing area preview to reduce resource
+			if(!g_hash_table_contains(priv->thread_table, priv->current_area))post_view_refresh(self);
+
 			//push the pixbuf to the runing post thread
 			l = threads;
 			if (l != NULL && priv->image_refresh) {
