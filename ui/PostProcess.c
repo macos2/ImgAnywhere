@@ -408,11 +408,6 @@ gboolean post_bitmap (PostBitmap *bitmap, cairo_surface_t **s, gpointer *out) {
   temp = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, w, h);
   switch (bitmap->gray) {
     case GRAY_SIM_DIFFUSE:
-//      cr = cairo_create (argb);
-//      cairo_rectangle (cr, 0, 0, w, h);
-//      cairo_set_source_rgb (cr, 0, 0, 0);
-//      cairo_fill (cr);
-//      cairo_destroy (cr);
       memcpy (cairo_image_surface_get_data (temp),
 	      cairo_image_surface_get_data (surf), w * h * 4);
       surf_rgba_to_gray_color (temp, bitmap->mean);
@@ -462,44 +457,6 @@ gboolean post_bitmap (PostBitmap *bitmap, cairo_surface_t **s, gpointer *out) {
     bit++;
   }
   cairo_surface_mark_dirty(a1);
-//	switch (cairo_image_surface_get_format(surf)) {
-//	case CAIRO_FORMAT_ARGB32:
-//	case CAIRO_FORMAT_RGB24:
-//		argb = cairo_surface_reference(surf);
-//		gray = cairo_image_surface_create(CAIRO_FORMAT_A8, w, h);
-//		img_argb_to_gray(cairo_image_surface_get_data(argb),
-//				cairo_image_surface_get_data(gray), w, h, MEAN_NUM);
-//		cairo_surface_mark_dirty(gray);
-//		if (bitmap->gray == GRAY_SIM_DIFFUSE) {
-//			temp = cairo_image_surface_create(CAIRO_FORMAT_A8, w, h);
-//			img_error_diffusion(cairo_image_surface_get_data(gray),
-//					cairo_image_surface_get_data(temp), w, h, 1,
-//					bitmap->gray_rank, &diff_332);
-//			cairo_surface_destroy(gray);
-//			gray = temp;
-//			cairo_surface_mark_dirty(gray);
-//		}
-//	case CAIRO_FORMAT_A8:
-//		if (gray == NULL)
-//			gray = cairo_surface_reference(surf);
-//		a1 = cairo_image_surface_create(CAIRO_FORMAT_A1, w, h);
-//		if (bitmap->gray == GRAY_SIM_MUL_THRESOLD) {
-//			thresold = (255-bitmap->thresold) / bitmap->gray_rank;
-//			thresold = bitmap->thresold + thresold*bitmap->rank_index;
-//			bitmap->rank_index += bitmap->rank_dir;
-//			if (bitmap->rank_index > bitmap->gray_rank
-//					|| bitmap->rank_index == 0)
-//				bitmap->rank_dir = bitmap->rank_dir > 0 ? -1 : 1;
-//		}
-//		img_gray_to_bit(cairo_image_surface_get_data(gray),
-//				cairo_image_surface_get_data(a1), w, h, thresold);
-//		cairo_surface_mark_dirty(a1);
-//	case CAIRO_FORMAT_A1:
-//		if (a1 == NULL)
-//			a1 = cairo_surface_reference(surf);
-//	default:
-//		break;
-//	}
   if (*out != NULL) g_free (*out);
   PostTransferData *t = com->transferdata;
   t->output_size = surf_a1_transform_by_scan (a1, out, bitmap->first,
