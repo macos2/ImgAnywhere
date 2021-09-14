@@ -17,6 +17,7 @@ typedef struct {
 } AreaInfo;
 
 typedef struct {
+	gboolean refresh_preview;
 	guint framerate_n, framerate_d;
 	GtkAdjustment *pos_x, *pos_y, *progress, *rotate, *size_h, *size_w, *volume,
 			*scale, *play_speed;
@@ -37,7 +38,7 @@ typedef struct {
 	GtkDrawingArea *preview_area;
 	GtkMenu *add_post_menu, *post_tree_view_menu;
 	GtkImage *bw, *diff, *file, *gray, *remap, *rgbfmt, *scan, *transparent,
-			*window, *image_file, *resize, *scan_preview, *framerate;
+			*window, *image_file, *resize, *scan_preview, *framerate,*image_play;
 	GtkDialog *open_uri_dialog;
 	GHashTable *thread_table;
 	gchar *open_file_name;
@@ -210,6 +211,7 @@ void area_select(MyVideoArea *video_area, VideoBoxArea *area, MyMain *self) {
 	g_signal_handlers_disconnect_by_data(priv->run_post, self);
 	gtk_toggle_button_set_active(priv->run_post, runing);
 	g_signal_connect(priv->run_post, "toggled", run_post_cb, self);
+	priv->refresh_preview=!runing;
 }
 
 void area_move(MyVideoArea *video_area, VideoBoxArea *area, gdouble *x,
@@ -549,15 +551,17 @@ void play_cb(GtkButton *button, MyMain *self) {
 		gst_element_set_state(priv->current_line,GST_STATE_NULL);
 		priv->image_refresh = FALSE;
 	}
-	gst_element_set_state(priv->current_line, GST_STATE_PLAYING);
-	priv->state = GST_STATE_PLAYING;
+	if(priv->state!=GST_STATE_PLAYING){
+		gst_element_set_state(priv->current_line, GST_STATE_PLAYING);
+		priv->state = GST_STATE_PLAYING;
+		gtk_image_set_from_icon_name(priv->image_play,"media-playback-pause-symbolic",GTK_ICON_SIZE_BUTTON);
+	}else{
+		gst_element_set_state(priv->current_line, GST_STATE_PAUSED);
+		priv->state = GST_STATE_PAUSED;
+		gtk_image_set_from_icon_name(priv->image_play,"media-playback-start-symbolic",GTK_ICON_SIZE_BUTTON);
+	}
 }
 
-void pause_cb(GtkButton *button, MyMain *self) {
-	GET_PRIV;
-	gst_element_set_state(priv->current_line, GST_STATE_PAUSED);
-	priv->state = GST_STATE_PAUSED;
-}
 
 gboolean progess_changed_cb(GtkScale *scale, GtkScrollType scroll,
 		gdouble value, MyMain *self) {
@@ -1380,6 +1384,7 @@ void run_post_cb(GtkToggleButton *button, MyMain *self) {
 		g_hash_table_remove(priv->thread_table, priv->current_area);
 		g_free(priv->current_area->area->describe);
 		priv->current_area->area->describe = NULL;
+		priv->refresh_preview=TRUE;
 		return;
 	}
 	//run the thread
@@ -1399,6 +1404,7 @@ void run_post_cb(GtkToggleButton *button, MyMain *self) {
 			run_post_thread, data);
 	priv->current_area->area->describe = g_strdup("Runing");
 	g_hash_table_insert(priv->thread_table, priv->current_area, data);
+	priv->refresh_preview=FALSE;
 }
 
 void run_post_all_cb(GtkMenuItem *menuitem, MyMain *self) {
@@ -1517,13 +1523,22 @@ void add_post_process(MyMain *self, PostCommon *post, gchar *name,
 		PostType type) {
 	GET_PRIV;
 	GtkTreeIter iter;
+	GtkTreePath *path;
 	AreaInfo *info = priv->current_area;
 	post->post_type = type;
 	post->widget_draw_queue = priv->widget_draw_queue;
 	post->duration = &priv->duration;
 	guint id = gtk_tree_model_iter_n_children(info->process_list, NULL);
 	gchar *n = g_strdup_printf("%s %d", name, id);
-	gtk_list_store_append(info->process_list, &iter);
+	GList *list=gtk_tree_selection_get_selected_rows(gtk_tree_view_get_selection(priv->post_tree_view),NULL);
+	if(list!=NULL){
+		path=list->data;
+		gtk_tree_model_get_iter(info->process_list,&iter,path);
+		g_list_free_full(list,gtk_tree_path_free);
+		gtk_list_store_insert_after( info->process_list,&iter,&iter);
+	}else{
+		gtk_list_store_append(info->process_list, &iter);
+	}
 	GtkImage *ti = NULL;
 	GdkPixbuf *pixbuf = NULL;
 	switch (type) {
@@ -1731,7 +1746,7 @@ gboolean message_watch_cb(GstBus *bus, GstMessage *message, MyMain *self) {
 			gtk_widget_queue_draw(priv->preview_area);
 
 			//stop the runing area preview to reduce resource
-			if(!g_hash_table_contains(priv->thread_table, priv->current_area))post_view_refresh(self);
+			if(priv->refresh_preview)post_view_refresh(self);
 
 			//push the pixbuf to the runing post thread
 			l = threads;
@@ -1813,6 +1828,7 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_child_private(klass, MyMain, full_screen);
 	gtk_widget_class_bind_template_child_private(klass, MyMain,
 			open_uri_dialog);
+	gtk_widget_class_bind_template_child_private(klass,MyMain,image_play);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, open_uri);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, preview_area);
 	gtk_widget_class_bind_template_child_private(klass, MyMain, add_post_menu);
@@ -1984,7 +2000,6 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_callback(klass, play_speed_output_cb);
 	gtk_widget_class_bind_template_callback(klass, volume_changed_cb);
 	gtk_widget_class_bind_template_callback(klass, play_cb);
-	gtk_widget_class_bind_template_callback(klass, pause_cb);
 	gtk_widget_class_bind_template_callback(klass, progess_changed_cb);
 
 	gtk_widget_class_bind_template_callback(klass, remove_area_cb);
@@ -2037,6 +2052,7 @@ static void my_main_init(MyMain *self) {
 	priv->area_table = g_hash_table_new(g_direct_hash, g_direct_equal);
 	priv->widget_draw_queue = g_async_queue_new();
 	priv->open_file_name=NULL;
+	priv->refresh_preview=TRUE;
 	gtk_container_add(priv->video_box, priv->video_area);
 	my_video_area_set_pixbuf(priv->video_area,
 			gdk_pixbuf_new_from_file("dog.jpg", NULL));
@@ -2045,8 +2061,6 @@ static void my_main_init(MyMain *self) {
 			"sensitive", G_BINDING_INVERT_BOOLEAN | G_BINDING_SYNC_CREATE);
 	g_object_bind_property(priv->run_post, "active", priv->remove, "sensitive",
 			G_BINDING_INVERT_BOOLEAN | G_BINDING_SYNC_CREATE);
-//	g_object_bind_property(priv->run_post, "active", priv->fit_size,
-//			"sensitive", G_BINDING_INVERT_BOOLEAN | G_BINDING_SYNC_CREATE);
 
 	g_signal_connect(priv->video_area, "area_select", area_select, self);
 	g_signal_connect(priv->video_area, "area_move", area_move, self);
@@ -2078,14 +2092,6 @@ static void my_main_init(MyMain *self) {
 	gst_object_unref(src_pad);
 	gst_object_unref(sink_pad);
 
-//	priv->area_filter=g_object_new(MY_TYPE_VIDEO_AREA_FILTER,NULL);//gst_element_factory_make("videoareafilter","videoareafilter");
-//	gst_bin_add(bin,priv->area_filter);
-//	sink_pad=gst_element_get_static_pad(priv->area_filter,"sink");
-//	src_pad=gst_element_get_request_pad(tee,"src_1");
-//	gst_pad_link(src_pad,sink_pad);
-//	gst_object_unref(src_pad);
-//	gst_object_unref(sink_pad);
-
 	priv->playbin = gst_element_factory_make("playbin", "playbin");
 	priv->play_line = gst_pipeline_new("line");
 	gst_bin_add_many(priv->play_line, priv->playbin, NULL);
@@ -2098,10 +2104,11 @@ static void my_main_init(MyMain *self) {
 			self);
 
 #ifdef G_OS_WIN32
-	priv->screen_line=gst_parse_launch("dx9screencapsrc name=src ! autovideoconvert ! queue ! gdkpixbufsink name=sink", NULL);
+	priv->screen_line=gst_parse_launch("dx9screencapsrc name=src ! autovideoconvert ! queue name=queue ! gdkpixbufsink name=sink", NULL);
 #else
-	priv->screen_line=gst_parse_launch("ximagesrc name=src ! autovideoconvert ! queue ! gdkpixbufsink name=sink", NULL);
+	priv->screen_line=gst_parse_launch("ximagesrc name=src ! autovideoconvert ! queue name=queue ! gdkpixbufsink name=sink", NULL);
 #endif
+	queue=gst_bin_get_by_name(priv->screen_line,"queue");
 	gst_bus_add_watch(gst_pipeline_get_bus(priv->screen_line), message_watch_cb,
 			self);
 	gst_element_set_state(priv->screen_line,GST_STATE_NULL);

@@ -132,7 +132,7 @@ void img_error_diffusion(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t 
 	for(i=0;i<h;i++){
 		for(j=0;j<_w;j++){
 			e=(in[i*_w+j]+out[i*_w+j])%u;
-			e=e>=240?0:e;
+			e=e>=245?0:e;
 //			printf("(%d,%d)",j,h);
 //			printf("e=%d \tin[i*_w+j]=%d \tout[i*_w+j]=%d\n",e,in[i*_w+j],out[i*_w+j]);
 			temp=in[i*_w+j]+out[i*_w+j]-e;

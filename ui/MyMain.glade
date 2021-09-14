@@ -3034,198 +3034,16 @@ macos2@gitee.com</property>
             <property name="position">550</property>
             <property name="wide_handle">True</property>
             <child>
-              <object class="GtkBox">
+              <object class="GtkScrolledWindow" id="video_box">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="orientation">vertical</property>
-                <property name="baseline_position">top</property>
+                <property name="can_focus">True</property>
+                <property name="shadow_type">in</property>
                 <child>
-                  <object class="GtkScrolledWindow" id="video_box">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="shadow_type">in</property>
-                    <child>
-                      <placeholder/>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkScale">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="adjustment">progress</property>
-                    <property name="round_digits">1</property>
-                    <property name="draw_value">False</property>
-                    <signal name="change-value" handler="progess_changed_cb" object="MyMain" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButtonBox">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="spacing">5</property>
-                    <property name="homogeneous">True</property>
-                    <property name="layout_style">start</property>
-                    <child>
-                      <object class="GtkButton">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="relief">none</property>
-                        <signal name="clicked" handler="play_cb" object="MyMain" swapped="no"/>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">media-playback-start-symbolic</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="relief">none</property>
-                        <signal name="clicked" handler="pause_cb" object="MyMain" swapped="no"/>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">media-playback-pause-symbolic</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkVolumeButton">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="focus_on_click">False</property>
-                        <property name="receives_default">True</property>
-                        <property name="relief">none</property>
-                        <property name="orientation">vertical</property>
-                        <property name="value">0.59999999999999998</property>
-                        <property name="adjustment">volume</property>
-                        <property name="icons">audio-volume-muted-symbolic
-audio-volume-high-symbolic
-audio-volume-low-symbolic
-audio-volume-medium-symbolic</property>
-                        <child internal-child="plus_button">
-                          <object class="GtkButton">
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="halign">center</property>
-                            <property name="valign">center</property>
-                            <property name="relief">none</property>
-                          </object>
-                        </child>
-                        <child internal-child="minus_button">
-                          <object class="GtkButton">
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="halign">center</property>
-                            <property name="valign">center</property>
-                            <property name="relief">none</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="width_chars">7</property>
-                        <property name="primary_icon_name">media-seek-forward-symbolic</property>
-                        <property name="adjustment">play_speed</property>
-                        <property name="digits">2</property>
-                        <property name="value">1</property>
-                        <signal name="input" handler="play_speed_input_cb" object="MyMain" swapped="no"/>
-                        <signal name="output" handler="play_speed_output_cb" object="MyMain" swapped="no"/>
-                        <signal name="value-changed" handler="play_speed_cb" object="MyMain" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="width_chars">10</property>
-                        <property name="primary_icon_name">edit-find-symbolic</property>
-                        <property name="adjustment">scale</property>
-                        <property name="digits">2</property>
-                        <property name="update_policy">if-valid</property>
-                        <signal name="input" handler="scale_input_cb" object="MyMain" swapped="no"/>
-                        <signal name="output" handler="scale_output_cb" object="MyMain" swapped="no"/>
-                        <signal name="value-changed" handler="scale_changed_cb" object="MyMain" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkToggleButton" id="full_screen">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="relief">none</property>
-                        <signal name="clicked" handler="full_screen_toggled_cb" object="MyMain" swapped="no"/>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">view-fullscreen-symbolic</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">6</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">2</property>
-                  </packing>
+                  <placeholder/>
                 </child>
               </object>
               <packing>
-                <property name="resize">True</property>
+                <property name="resize">False</property>
                 <property name="shrink">True</property>
               </packing>
             </child>
@@ -3864,8 +3682,157 @@ audio-volume-medium-symbolic</property>
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="pack_type">end</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScale">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="adjustment">progress</property>
+            <property name="draw_value">False</property>
+            <signal name="change-value" handler="progess_changed_cb" object="MyMain" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
             <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButtonBox">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="spacing">5</property>
+            <property name="layout_style">start</property>
+            <child>
+              <object class="GtkButton">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="relief">none</property>
+                <signal name="clicked" handler="play_cb" object="MyMain" swapped="no"/>
+                <child>
+                  <object class="GtkImage" id="image_play">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="icon_name">media-playback-pause-symbolic</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkVolumeButton">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="focus_on_click">False</property>
+                <property name="receives_default">True</property>
+                <property name="relief">none</property>
+                <property name="orientation">vertical</property>
+                <property name="value">0.59999999999999998</property>
+                <property name="adjustment">volume</property>
+                <property name="icons">audio-volume-muted-symbolic
+audio-volume-high-symbolic
+audio-volume-low-symbolic
+audio-volume-medium-symbolic</property>
+                <child internal-child="plus_button">
+                  <object class="GtkButton">
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <property name="relief">none</property>
+                  </object>
+                </child>
+                <child internal-child="minus_button">
+                  <object class="GtkButton">
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <property name="relief">none</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="width_chars">7</property>
+                <property name="text" translatable="yes">1.00</property>
+                <property name="primary_icon_name">media-seek-forward-symbolic</property>
+                <property name="adjustment">play_speed</property>
+                <property name="digits">2</property>
+                <property name="value">1</property>
+                <signal name="input" handler="play_speed_input_cb" object="MyMain" swapped="no"/>
+                <signal name="output" handler="play_speed_output_cb" object="MyMain" swapped="no"/>
+                <signal name="value-changed" handler="play_speed_cb" object="MyMain" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="width_chars">10</property>
+                <property name="text" translatable="yes">1.00</property>
+                <property name="primary_icon_name">edit-find-symbolic</property>
+                <property name="adjustment">scale</property>
+                <property name="digits">2</property>
+                <property name="update_policy">if-valid</property>
+                <property name="value">1</property>
+                <signal name="input" handler="scale_input_cb" object="MyMain" swapped="no"/>
+                <signal name="output" handler="scale_output_cb" object="MyMain" swapped="no"/>
+                <signal name="value-changed" handler="scale_changed_cb" object="MyMain" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="full_screen">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="relief">none</property>
+                <signal name="clicked" handler="full_screen_toggled_cb" object="MyMain" swapped="no"/>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="icon_name">view-fullscreen-symbolic</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">6</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack_type">end</property>
+            <property name="position">3</property>
           </packing>
         </child>
       </object>
@@ -3986,7 +3953,7 @@ audio-volume-medium-symbolic</property>
             <property name="can_focus">False</property>
             <child>
               <object class="GtkImageMenuItem">
-                <property name="label" translatable="yes">Limit Framerate</property>
+                <property name="label" translatable="yes">Limit Framerate 帧率限制</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="image">framerate</property>
