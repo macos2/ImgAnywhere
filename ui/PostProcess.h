@@ -90,6 +90,7 @@ typedef struct {
 	PostCommon com;
 	gboolean transparent;
 	guint8 r, g, b, a;
+	guint8 ir, ig, ib, ia;//invert color 反色
 	gdouble color_distance;
 } PostTransparent;
 

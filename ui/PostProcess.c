@@ -368,6 +368,7 @@ gboolean post_transparent (PostTransparent *transparent, cairo_surface_t **s,
   guint32 size, i;
   guint8 *p = cairo_image_surface_get_data (surf);
   guint32 w, h;
+  guint temp;
   w = cairo_image_surface_get_width (surf);
   h = cairo_image_surface_get_height (surf);
   size = w * h;
@@ -383,8 +384,14 @@ gboolean post_transparent (PostTransparent *transparent, cairo_surface_t **s,
       p[1] = p[1] > transparent->g ? p[1] - transparent->g : 0;
       p[2] = p[2] > transparent->r ? p[2] - transparent->r : 0;
       p[3] = p[3] > transparent->a ? p[3] - transparent->a : 0;
+//      temp=p[0] + transparent->ib;
+//      p[0] = temp>0xff?0xff:temp;
       p[0] *= d;
+//      temp=p[1] + transparent->ig;
+//      p[1] = temp>0xff?0xff:temp;
       p[1] *= d;
+//      temp=p[2] + transparent->ir;
+//      p[2] = temp>0xff?0xff:temp;
       p[2] *= d;
       p[3] = 0xff * d;
     }

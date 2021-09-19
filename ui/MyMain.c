@@ -1071,6 +1071,11 @@ void post_tree_view_menu_setting_cb(GtkMenuItem *menuitem, MyMain *self) {
 			transparent->b = rgba.blue * 255;
 			transparent->g = rgba.green * 255;
 			transparent->r = rgba.red * 255;
+			transparent->ia=255-transparent->a;
+			transparent->ib=255-transparent->b;
+			transparent->ig=255-transparent->g;
+			transparent->ir=255-transparent->r;
+
 		}
 		break;
 	case POST_FRAMERATE:
@@ -1588,7 +1593,7 @@ void add_post_process(MyMain *self, PostCommon *post, gchar *name,
 			col_name, n, col_preview_pixbuf, NULL, col_type_pixbuf, pixbuf,
 			col_type, type, -1);
 	g_free(n);
-	post_view_refresh(self);
+	//post_view_refresh(self);
 }
 
 void add_to_gray_cb(GtkMenuItem *menuitem, MyMain *self) {
@@ -1640,6 +1645,10 @@ void add_transparent_cb(GtkMenuItem *menuitem, MyMain *self) {
 	PostTransparent *post = g_malloc0(sizeof(PostTransparent));
 	add_post_process(self, post, "Transparent", POST_TRANSPARENT);
 	post->a = 255;
+	post->ia=0;
+	post->ib=255;
+	post->ig=255;
+	post->ir=255;
 	post->color_distance = 10.;
 }
 
