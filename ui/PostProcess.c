@@ -380,20 +380,20 @@ gboolean post_transparent (PostTransparent *transparent, cairo_surface_t **s,
     d = sqrt (dr * dr + dg * dg + db * db + da * da);
     if (d <= transparent->color_distance) {
       d = d / transparent->color_distance;
-      p[0] = p[0] > transparent->b ? p[0] - transparent->b : 0;
-      p[1] = p[1] > transparent->g ? p[1] - transparent->g : 0;
-      p[2] = p[2] > transparent->r ? p[2] - transparent->r : 0;
-      p[3] = p[3] > transparent->a ? p[3] - transparent->a : 0;
+      p[0] = p[0] - transparent->b>0 ? p[0] - transparent->b : 0;
+      p[1] = p[1] - transparent->g>0 ? p[1] - transparent->g : 0;
+      p[2] = p[2] - transparent->r>0 ? p[2] - transparent->r : 0;
+      p[3] = p[3] - transparent->a>0 ? p[3] - transparent->a : 0;
 //      temp=p[0] + transparent->ib;
 //      p[0] = temp>0xff?0xff:temp;
-      p[0] *= d;
+//      p[0] *= d;
 //      temp=p[1] + transparent->ig;
 //      p[1] = temp>0xff?0xff:temp;
-      p[1] *= d;
+//      p[1] *= d;
 //      temp=p[2] + transparent->ir;
 //      p[2] = temp>0xff?0xff:temp;
-      p[2] *= d;
-      p[3] = 0xff * d;
+//      p[2] *= d;
+      p[3] =  sin(d*G_PI_2)*0xff ;
     }
     p += 4;
   }
