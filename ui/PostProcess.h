@@ -101,7 +101,7 @@ typedef enum {
 typedef struct {
 	PostCommon com;
 	GraySim gray;
-	guint8 thresold, gray_rank;
+	guint8 thresold, gray_rank,diff_radio;
 	MeanOpt mean;
 	ScanDirection first, second;
 	ByteOrder order;

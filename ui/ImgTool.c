@@ -121,33 +121,81 @@ void img_rank(uint8_t *in, uint8_t *out,
 	}
 }
 
+
+#define add_error_diffusion(X,Y,RATIO) temp=out[(i+(Y))*_w+j+(X)*pixel_size]+e*RATIO/div;out[(i+(Y))*_w+j+(X)*pixel_size]=temp>0xff?0xff:temp;
 void img_error_diffusion(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t pixel_size,uint8_t rank,DiffRatio *ratio){
 	uint32_t i,j;
-	uint32_t _w=w*pixel_size,temp;
+	uint32_t _w=w*pixel_size;
 	if(rank<=0)rank=1;
 	uint8_t u=255/rank;
-	uint16_t div=0,e;
-	div=ratio->bm+ratio->r+ratio->rb;
+	int div=0,e,temp;
+	div=ratio->bottom_middle+ratio->right+ratio->bottom_right+ratio->left+ratio->bottom_left+ratio->top_left+ratio->top_right+ratio->top_middle;
 	if(div==0)return;
 	for(i=0;i<h;i++){
 		for(j=0;j<_w;j++){
 			e=(in[i*_w+j]+out[i*_w+j])%u;
-			e=e>=245?0:e;
-//			printf("(%d,%d)",j,h);
-//			printf("e=%d \tin[i*_w+j]=%d \tout[i*_w+j]=%d\n",e,in[i*_w+j],out[i*_w+j]);
 			temp=in[i*_w+j]+out[i*_w+j]-e;
-//			printf("temp=%d\n",temp);
+			if(temp<0)temp=in[i*_w+j]+out[i*_w+j];
 			out[i*_w+j]=temp>255?255:temp;
-//			printf("out[i*_w+j]=%d\n\n",out[i*_w+j]);
-			if(j<(_w-pixel_size)){
-				out[i*_w+j+pixel_size]+=e*ratio->r/div;//误差的扩散至右像素。
-				if(i<(h-1))
-					out[(i+1)*_w+j+pixel_size]+=e*ratio->rb/div;//误差的扩散至右下像素。
-				}
-			if(i<(h-1))out[(i+1)*_w+j]+=e*ratio->bm/div;//误差的扩散至下边像素。
+			if(i>0&&j>=pixel_size&&i<(h-1)&&j<(_w-pixel_size)){//middle area
+				add_error_diffusion(-1,-1,ratio->top_left);
+				add_error_diffusion(0,-1,ratio->top_middle);
+				add_error_diffusion(1,-1,ratio->top_right);
+				add_error_diffusion(-1,0,ratio->left);
+				add_error_diffusion(1,0,ratio->right);
+				add_error_diffusion(-1,1,ratio->bottom_left);
+				add_error_diffusion(0,1,ratio->bottom_middle);
+				add_error_diffusion(1,1,ratio->bottom_right);
+			}else if(i==0&&j>=pixel_size&&j<(_w-pixel_size)){//top edge
+				add_error_diffusion(-1,0,ratio->left);
+				add_error_diffusion(1,0,ratio->right);
+				add_error_diffusion(-1,1,ratio->bottom_left);
+				add_error_diffusion(0,1,ratio->bottom_middle);
+				add_error_diffusion(1,1,ratio->bottom_right);
+			}else if(i==(h-1)&&j>=pixel_size&&j<(_w-pixel_size)){//bottom edge
+				add_error_diffusion(-1,-1,ratio->top_left);
+				add_error_diffusion(0,-1,ratio->top_middle);
+				add_error_diffusion(1,-1,ratio->top_right);
+				add_error_diffusion(-1,0,ratio->left);
+				add_error_diffusion(1,0,ratio->right);
+			}else if(i>0&&i<(h-1)&&j<pixel_size){//left edge
+				add_error_diffusion(0,-1,ratio->top_middle);
+				add_error_diffusion(1,-1,ratio->top_right);
+				add_error_diffusion(1,0,ratio->right);
+				add_error_diffusion(0,1,ratio->bottom_middle);
+				add_error_diffusion(1,1,ratio->bottom_right);
+			}else if(i>0&&i<(h-1)&&j>=(_w-pixel_size)){//right edge
+				add_error_diffusion(-1,-1,ratio->top_left);
+				add_error_diffusion(0,-1,ratio->top_middle);
+				add_error_diffusion(-1,0,ratio->left);
+				add_error_diffusion(-1,1,ratio->bottom_left);
+				add_error_diffusion(0,1,ratio->bottom_middle);
+			}else if(i==0&&j<pixel_size){//top left point
+				add_error_diffusion(1,0,ratio->right);
+				add_error_diffusion(0,1,ratio->bottom_middle);
+				add_error_diffusion(1,1,ratio->bottom_right);
+			}else if(i==0&&j>=(_w-pixel_size)){//top right point
+				add_error_diffusion(-1,0,ratio->left);
+				add_error_diffusion(-1,1,ratio->bottom_left);
+				add_error_diffusion(0,1,ratio->bottom_middle);
+			}else if(i==(h-1)&&j<pixel_size){//bottom left point
+				add_error_diffusion(0,-1,ratio->top_middle);
+				add_error_diffusion(1,-1,ratio->top_right);
+				add_error_diffusion(1,0,ratio->right);
+			}else if(i==(h-1)&&j>=(_w-pixel_size)){//bottom right point
+				add_error_diffusion(-1,-1,ratio->top_left);
+				add_error_diffusion(0,-1,ratio->top_middle);
+				add_error_diffusion(-1,0,ratio->left);
+			};
+//			if(j<(_w-pixel_size)){
+//				out[i*_w+j+pixel_size]+=e*ratio->r/div;//误差的扩散至右像素。
+//				if(i<(h-1))
+//					out[(i+1)*_w+j+pixel_size]+=e*ratio->rb/div;//误差的扩散至右下像素。
+//				}
+//			if(i<(h-1))out[(i+1)*_w+j]+=e*ratio->bm/div;//误差的扩散至下边像素。
 			}
 		}
-	}
+}
 
 
 void img_edge_detect(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t pixel_size){

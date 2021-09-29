@@ -121,11 +121,17 @@ GdkPixbuf* post_preview (PostCommon *post, cairo_surface_t **s) {
 	cairo_set_source_rgb (cr, 0, 0, 0);
 	cairo_fill (cr);
 	surf_rgba_to_gray_color (surf, bit->mean);
+	switch(bit->diff_radio){
+	case 1:
 	img_error_diffusion (cairo_image_surface_get_data (surf), data, w, h, 4,
-			     bit->gray_rank, &diff_332);
+			     bit->gray_rank, &diff_332);break;
+	default:
+	img_error_diffusion (cairo_image_surface_get_data (surf), data, w, h, 4,
+				     bit->gray_rank, &diff_332UP);break;
+    }
 	surf_rgba_to_bw_color (out, MEAN_NUM, bit->thresold);
-      }
-      else if (bit->gray == GRAY_SIM_MUL_THRESOLD) {
+
+      }else if (bit->gray == GRAY_SIM_MUL_THRESOLD) {
 	surf_rgba_to_gray_color (out, bit->mean);
 	img_rank (cairo_image_surface_get_data (out),
 		  cairo_image_surface_get_data (out), w * 4, h, bit->gray_rank);
@@ -419,9 +425,16 @@ gboolean post_bitmap (PostBitmap *bitmap, cairo_surface_t **s, gpointer *out) {
 	      cairo_image_surface_get_data (surf), w * h * 4);
       surf_rgba_to_gray_color (temp, bitmap->mean);
       cairo_surface_mark_dirty(temp);
+      switch(bitmap->diff_radio){
+      case 1:
+      img_error_diffusion (cairo_image_surface_get_data (temp),
+    			   cairo_image_surface_get_data (argb), w, h, 4,
+    			   bitmap->gray_rank, &diff_332UP);break;
+      default:
       img_error_diffusion (cairo_image_surface_get_data (temp),
 			   cairo_image_surface_get_data (argb), w, h, 4,
-			   bitmap->gray_rank, &diff_332);
+			   bitmap->gray_rank, &diff_332UP);break;
+      }
       surf_rgba_to_bw_color (argb, MEAN_NUM, bitmap->thresold);
       break;
     case GRAY_SIM_MUL_THRESOLD:

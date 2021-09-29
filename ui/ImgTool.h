@@ -17,10 +17,9 @@ typedef enum{
 }MeanOpt;
 
 typedef struct{
-	//uint8_t lt,tm,rt;	//left-top 		top-middle 		right-top
-	//uint8_t r,l;		//left 			[current-pixel]	right
-	//uint8_t lb,bm,rb;	//left-bottom	bottom-middle	right-bottom
-	uint8_t r,bm,rb;
+	uint8_t top_left,		top_middle,		top_right;
+	uint8_t left,			middle,			right;
+	uint8_t bottom_left,	bottom_middle,	bottom_right;
 }DiffRatio;
 
 typedef struct{
@@ -32,7 +31,13 @@ typedef struct{
 
 //some common static value
 static DiffRatio diff_332={
-		.r=3,.bm=3,.rb=2,
+		.right=3,.bottom_middle=3,.bottom_right=2,
+};
+
+static DiffRatio diff_332UP={
+	.top_left=2,		.top_middle=3,		.top_right=2,
+	.left=3,								.right=24,
+	.bottom_left=12,	.bottom_middle=24,	.bottom_right=12,
 };
 
 static RemapWeight clear_alpha={

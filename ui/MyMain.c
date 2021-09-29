@@ -65,7 +65,7 @@ typedef struct {
 	GtkSpinButton *post_bitmap_bw_thresold, *post_bitmap_gray_rank;
 	GtkComboBoxText *post_bitmap_mean, *post_bitmap_1st_dir,
 			*post_bitmap_2nd_dir, *post_bitmap_bit_dir, *post_bitmap_bit_order,
-			*post_bitmap_gray_sim;
+			*post_bitmap_gray_sim,*post_bitmap_diff_weight;
 	GtkImage *post_bitmap_preview, *post_bitmap_bit_dir_preview;
 
 	//post_bw_dialog
@@ -73,8 +73,8 @@ typedef struct {
 	GtkComboBoxText *post_bw_mean;
 
 	//post_diffuse_dialog
-	GtkSpinButton *post_diffuse_rank, *post_diffuse_right,
-			*post_diffuse_right_bottom, *post_diffuse_bottom;
+	GtkSpinButton *post_diffuse_rank;
+	GtkEntry *post_diffuse_top_left,*post_diffuse_top_middle,*post_diffuse_right,*post_diffuse_top_right,*post_diffuse_left,*post_diffuse_bottom_left,*post_diffuse_bottom_middle,*post_diffuse_bottom_right;
 
 	//post_gray_dialog
 	GtkComboBoxText *post_gray_mean;
@@ -867,6 +867,8 @@ void post_bitmap_dir_changed_cb(GtkComboBoxText *combo, MyMain *self) {
 
 #define set_remap_entry(_x) temp=g_strdup_printf("%.2f",remap->remap_weight._x);gtk_entry_set_text(priv->_x,temp);g_free(temp)
 #define set_remap(_y) num=atof(gtk_entry_get_text(priv->_y));remap->remap_weight._y=num;
+#define set_diff_entry(_x,_entry) temp=g_strdup_printf("%d",_x);gtk_entry_set_text(_entry,temp);g_free(temp)
+#define set_diff(_y,_entry) _y=atoi(gtk_entry_get_text(_entry))
 void post_tree_view_menu_setting_cb(GtkMenuItem *menuitem, MyMain *self) {
 	GET_PRIV;
 	GdkRGBA rgba;
@@ -972,6 +974,7 @@ void post_tree_view_menu_setting_cb(GtkMenuItem *menuitem, MyMain *self) {
 		gtk_combo_box_set_active(priv->post_bitmap_bit_dir, bitmap->bitdir);
 		gtk_combo_box_set_active(priv->post_bitmap_bit_order, bitmap->order);
 		gtk_combo_box_set_active(priv->post_bitmap_gray_sim, bitmap->gray);
+		gtk_combo_box_set_active(priv->post_bitmap_diff_weight,bitmap->diff_radio);
 		gtk_spin_button_set_value(priv->post_bitmap_gray_rank,
 				bitmap->gray_rank);
 		if (gtk_dialog_run(dialog) == GTK_RESPONSE_OK) {
@@ -988,6 +991,7 @@ void post_tree_view_menu_setting_cb(GtkMenuItem *menuitem, MyMain *self) {
 					priv->post_bitmap_bit_order);
 			bitmap->thresold = gtk_spin_button_get_value_as_int(
 					priv->post_bitmap_bw_thresold);
+			bitmap->diff_radio=gtk_combo_box_get_active(priv->post_bitmap_diff_weight);
 		}
 		break;
 	case POST_BW:
@@ -1005,19 +1009,25 @@ void post_tree_view_menu_setting_cb(GtkMenuItem *menuitem, MyMain *self) {
 		diff = post;
 		dialog = priv->post_diffuse_dialog;
 		gtk_spin_button_set_value(priv->post_diffuse_rank, diff->rank);
-		gtk_spin_button_set_value(priv->post_diffuse_right, diff->radio.r);
-		gtk_spin_button_set_value(priv->post_diffuse_right_bottom,
-				diff->radio.rb);
-		gtk_spin_button_set_value(priv->post_diffuse_bottom, diff->radio.bm);
+		set_diff_entry(diff->radio.top_left,priv->post_diffuse_top_left);
+		set_diff_entry(diff->radio.top_middle,priv->post_diffuse_top_middle);
+		set_diff_entry(diff->radio.top_right,priv->post_diffuse_top_right);
+		set_diff_entry(diff->radio.left,priv->post_diffuse_left);
+		set_diff_entry(diff->radio.right,priv->post_diffuse_right);
+		set_diff_entry(diff->radio.bottom_left,priv->post_diffuse_bottom_left);
+		set_diff_entry(diff->radio.bottom_middle,priv->post_diffuse_bottom_middle);
+		set_diff_entry(diff->radio.bottom_right,priv->post_diffuse_bottom_right);
 		if (gtk_dialog_run(dialog) == GTK_RESPONSE_OK) {
 			diff->rank = gtk_spin_button_get_value_as_int(
 					priv->post_diffuse_rank);
-			diff->radio.r = gtk_spin_button_get_value_as_int(
-					priv->post_diffuse_right);
-			diff->radio.rb = gtk_spin_button_get_value_as_int(
-					priv->post_diffuse_right_bottom);
-			diff->radio.bm = gtk_spin_button_get_value_as_int(
-					priv->post_diffuse_bottom);
+			set_diff(diff->radio.top_left,priv->post_diffuse_top_left);
+			set_diff(diff->radio.top_middle,priv->post_diffuse_top_middle);
+			set_diff(diff->radio.top_right,priv->post_diffuse_top_right);
+			set_diff(diff->radio.left,priv->post_diffuse_left);
+			set_diff(diff->radio.right,priv->post_diffuse_right);
+			set_diff(diff->radio.bottom_left,priv->post_diffuse_bottom_left);
+			set_diff(diff->radio.bottom_middle,priv->post_diffuse_bottom_middle);
+			set_diff(diff->radio.bottom_right,priv->post_diffuse_bottom_right);
 		}
 		break;
 	case POST_GRAY:
@@ -1631,10 +1641,10 @@ void add_error_diffuse_cb(GtkMenuItem *menuitem, MyMain *self) {
 	if (priv->current_area == NULL)
 		return;
 	PostDiffuse *post = g_malloc0(sizeof(PostDiffuse));
-	post->rank = 2;
-	post->radio.bm = diff_332.bm;
-	post->radio.r = diff_332.r;
-	post->radio.rb = diff_332.rb;
+	post->rank = 1;
+	post->radio.bottom_middle = diff_332.bottom_middle;
+	post->radio.right = diff_332.right;
+	post->radio.bottom_right = diff_332.bottom_right;
 	add_post_process(self, post, "Error Diffusion", POST_DIFFUSE);
 }
 
@@ -1928,6 +1938,8 @@ static void my_main_class_init(MyMainClass *klass) {
 			post_bitmap_preview);
 	gtk_widget_class_bind_template_child_private(klass, MyMain,
 			post_bitmap_bit_dir_preview);
+	gtk_widget_class_bind_template_child_private(klass, MyMain,
+			post_bitmap_diff_weight);
 
 	//post_bw_dialog
 	gtk_widget_class_bind_template_child_private(klass, MyMain,
@@ -1938,11 +1950,21 @@ static void my_main_class_init(MyMainClass *klass) {
 	gtk_widget_class_bind_template_child_private(klass, MyMain,
 			post_diffuse_rank);
 	gtk_widget_class_bind_template_child_private(klass, MyMain,
+			post_diffuse_top_left);
+	gtk_widget_class_bind_template_child_private(klass, MyMain,
+			post_diffuse_top_middle);
+	gtk_widget_class_bind_template_child_private(klass, MyMain,
+			post_diffuse_top_right);
+	gtk_widget_class_bind_template_child_private(klass, MyMain,
+			post_diffuse_left);
+	gtk_widget_class_bind_template_child_private(klass, MyMain,
 			post_diffuse_right);
 	gtk_widget_class_bind_template_child_private(klass, MyMain,
-			post_diffuse_right_bottom);
+			post_diffuse_bottom_left);
 	gtk_widget_class_bind_template_child_private(klass, MyMain,
-			post_diffuse_bottom);
+			post_diffuse_bottom_middle);
+	gtk_widget_class_bind_template_child_private(klass, MyMain,
+			post_diffuse_bottom_right);
 
 	//post_gray_dialog
 	gtk_widget_class_bind_template_child_private(klass, MyMain, post_gray_mean);
