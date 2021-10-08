@@ -25,8 +25,8 @@ void img_argb_to_gray(uint8_t *argb_img, uint8_t *gray_img,
 			break;
 		case MEAN_GEO:
 		default:
-			x=s[0]*s[0]+s[1]*s[1]+s[2]*s[2];
-			temp=ceil(sqrt(x)*255/442);
+			x = s[0] * s[0] + s[1] * s[1] + s[2] * s[2];
+			temp = ceil(sqrt(x) / 441.67295593 * 255.);
 			*d=temp;
 			break;
 		}

@@ -259,8 +259,9 @@ for (j = 0; j < i; j++) {
 		break;
 	case MEAN_GEO:
 	default:
-		x = p[1] * p[1] + p[2] * p[2] + p[3] * p[3];
-		tmp = ceil(sqrt(x) * 255 / 442);
+		x = p[0] * p[0] + p[1] * p[1] + p[2] * p[2];
+		tmp = ceil(sqrt(x) / 441.67295593 * 255.);
+		//printf("%d %d %d = %d\n",p[1],p[2],p[3],tmp);
 		break;
 	}
 	tmp = tmp > 0xff ? 0xff : tmp;
@@ -292,8 +293,8 @@ for (j = 0; j < i; j++) {
 		break;
 	case MEAN_GEO:
 	default:
-		x = p[1] * p[1] + p[2] * p[2] + p[3] * p[3];
-		tmp = ceil(sqrt(x) * 255 / 442);
+		x = p[0] * p[0] + p[1] * p[1] + p[2] * p[2];
+		tmp = ceil(sqrt(x) / 441.67295593 * 255.);
 		break;
 	}
 	tmp = tmp > threshold ? 0xff : 0x00;
