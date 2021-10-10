@@ -133,8 +133,12 @@ void img_error_diffusion(uint8_t *in,uint8_t *out,uint32_t w,uint32_t h,uint8_t 
 	if(div==0)return;
 	for(i=0;i<h;i++){
 		for(j=0;j<_w;j++){
-			e=(in[i*_w+j]+out[i*_w+j])%u;
+			if(in[i*_w+j]>245)
+			  e=(255+out[i*_w+j])%u;
+			else
+			  e=(in[i*_w+j]+out[i*_w+j])%u;
 			temp=in[i*_w+j]+out[i*_w+j]-e;
+//			g_print("temp:%d\te:%d\n",temp,e);
 			if(temp<0)temp=in[i*_w+j]+out[i*_w+j];
 			out[i*_w+j]=temp>255?255:temp;
 			if(i>0&&j>=pixel_size&&i<(h-1)&&j<(_w-pixel_size)){//middle area
