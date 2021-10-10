@@ -1648,7 +1648,7 @@ macos2@gitee.com</property>
                     <property name="active">0</property>
                     <property name="active_id">0</property>
                     <items>
-                      <item id="0" translatable="yes">Import 332 改进332权重</item>
+                      <item id="0" translatable="yes">Improved 332 改进332权重</item>
                       <item id="1" translatable="yes">Classic 332 经典332权重</item>
                     </items>
                   </object>
